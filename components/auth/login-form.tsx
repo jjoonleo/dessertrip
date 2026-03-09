@@ -49,10 +49,7 @@ export function LoginForm() {
   return (
     <section className="card border border-base-300 bg-base-100 shadow-2xl">
       <div className="card-body gap-6 p-8">
-        <div className="space-y-3">
-          <span className="badge badge-secondary badge-outline">
-            {t("login.form.badge")}
-          </span>
+        <div className="space-y-2">
           <h2 className="card-title text-3xl font-bold">
             {t("login.form.title")}
           </h2>
@@ -108,19 +105,6 @@ export function LoginForm() {
                 ? t("login.form.submitDone")
                 : t("login.form.submitIdle")}
           </button>
-
-          <div className="divider text-xs uppercase tracking-[0.24em] text-base-content/50">
-            {t("login.form.included")}
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-box bg-base-200 p-4 text-sm">
-              {t("login.form.featureBuilder")}
-            </div>
-            <div className="rounded-box bg-base-200 p-4 text-sm">
-              {t("login.form.featureStats")}
-            </div>
-          </div>
         </form>
       </div>
     </section>

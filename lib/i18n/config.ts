@@ -27,22 +27,12 @@ export const enMessages = {
   "nav.stats.label": "Stats",
   "nav.stats.description":
     "Review per-member participation counts across activities.",
-  "login.hero.badge": "Dessert Club Admin",
-  "login.hero.title":
-    "Manage weekly dessert trips, members, and balanced activity groups in one dashboard.",
+  "login.hero.badge": "Dessertrip",
+  "login.hero.title": "Sign in to manage Dessertrip.",
   "login.hero.description":
-    "The MVP focuses on the core club workflow: one manager login, Mongo-backed member data, Saturday activity planning, random grouping, and participation statistics.",
-  "login.stats.database.title": "Database",
-  "login.stats.database.description": "Member records and activities",
-  "login.stats.workflow.title": "Workflow state",
-  "login.stats.workflow.description": "Drafts, filters, and UI flows",
-  "login.stats.draft.title": "Draft safety",
-  "login.stats.draft.value": "Persisted",
-  "login.stats.draft.description": "Activity drafts survive a refresh",
-  "login.form.badge": "Manager Login",
-  "login.form.title": "Sign in to the club dashboard",
-  "login.form.description":
-    "The real session stays on the server in a secure cookie. Zustand only manages the client-side login workflow.",
+    "Use the manager account to manage members, weekly activities, and participation records.",
+  "login.form.title": "Manager sign in",
+  "login.form.description": "Enter the manager account credentials to continue.",
   "login.form.username": "Username",
   "login.form.usernamePlaceholder": "Manager username",
   "login.form.password": "Password",
@@ -50,11 +40,6 @@ export const enMessages = {
   "login.form.submitIdle": "Sign in",
   "login.form.submitPending": "Signing in...",
   "login.form.submitDone": "Signed in",
-  "login.form.included": "Included",
-  "login.form.featureBuilder":
-    "Saturday activity builder with balanced random grouping.",
-  "login.form.featureStats":
-    "Member participation stats derived from saved activities.",
   "dashboard.badge": "Club Admin",
   "dashboard.shell.openNavigation": "Open navigation",
   "dashboard.shell.dismissNavigation": "Dismiss navigation",
@@ -348,22 +333,12 @@ export const koMessages: MessageDictionary = {
   "nav.stats.label": "통계",
   "nav.stats.description":
     "멤버별 정기활동 참여 횟수를 확인합니다.",
-  "login.hero.badge": "디저트 동아리 관리자",
-  "login.hero.title":
-    "매주 디저트 트립, 멤버, 균형 잡힌 활동 조를 하나의 대시보드에서 관리하세요.",
+  "login.hero.badge": "Dessertrip",
+  "login.hero.title": "디저트립 관리를 위해 로그인하세요.",
   "login.hero.description":
-    "이 MVP는 관리자 1인 로그인, MongoDB 기반 멤버 데이터, 토요일 정기활동 계획, 랜덤 조 편성, 참여 통계까지 핵심 동아리 운영 흐름에 집중합니다.",
-  "login.stats.database.title": "데이터베이스",
-  "login.stats.database.description": "멤버 기록과 정기활동 저장",
-  "login.stats.workflow.title": "워크플로 상태",
-  "login.stats.workflow.description": "초안, 필터, UI 흐름 관리",
-  "login.stats.draft.title": "초안 보존",
-  "login.stats.draft.value": "유지됨",
-  "login.stats.draft.description": "활동 초안이 새로고침 후에도 유지됩니다",
-  "login.form.badge": "관리자 로그인",
-  "login.form.title": "동아리 대시보드 로그인",
-  "login.form.description":
-    "실제 세션은 보안 쿠키로 서버에 저장되고, Zustand는 클라이언트 로그인 흐름만 관리합니다.",
+    "관리자 계정으로 로그인해 멤버, 정기활동, 참여 기록을 관리하세요.",
+  "login.form.title": "관리자 로그인",
+  "login.form.description": "계속하려면 관리자 계정 정보를 입력하세요.",
   "login.form.username": "아이디",
   "login.form.usernamePlaceholder": "관리자 아이디",
   "login.form.password": "비밀번호",
@@ -371,11 +346,6 @@ export const koMessages: MessageDictionary = {
   "login.form.submitIdle": "로그인",
   "login.form.submitPending": "로그인 중...",
   "login.form.submitDone": "로그인됨",
-  "login.form.included": "포함 기능",
-  "login.form.featureBuilder":
-    "균형 잡힌 랜덤 조 편성을 포함한 토요일 정기활동 빌더",
-  "login.form.featureStats":
-    "저장된 정기활동을 기반으로 한 멤버 참여 통계",
   "dashboard.badge": "동아리 관리자",
   "dashboard.shell.openNavigation": "내비게이션 열기",
   "dashboard.shell.dismissNavigation": "내비게이션 닫기",

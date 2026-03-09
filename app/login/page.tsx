@@ -27,7 +27,7 @@ export default async function LoginPage() {
 
       <div className="hero min-h-[calc(100vh-4rem)] px-6 py-12">
         <div className="hero-content grid w-full max-w-6xl gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
-          <section className="space-y-6">
+          <section className="space-y-4">
             <div className="space-y-4">
               <span className="badge badge-primary badge-outline badge-lg">
                 {t("login.hero.badge")}
@@ -38,32 +38,6 @@ export default async function LoginPage() {
               <p className="max-w-2xl text-lg leading-8 text-base-content/70">
                 {t("login.hero.description")}
               </p>
-            </div>
-
-            <div className="stats stats-vertical w-full bg-base-100 shadow-xl lg:stats-horizontal">
-              <div className="stat">
-                <div className="stat-title">{t("login.stats.database.title")}</div>
-                <div className="stat-value text-primary">MongoDB</div>
-                <div className="stat-desc">
-                  {t("login.stats.database.description")}
-                </div>
-              </div>
-              <div className="stat">
-                <div className="stat-title">{t("login.stats.workflow.title")}</div>
-                <div className="stat-value text-secondary">Zustand</div>
-                <div className="stat-desc">
-                  {t("login.stats.workflow.description")}
-                </div>
-              </div>
-              <div className="stat">
-                <div className="stat-title">{t("login.stats.draft.title")}</div>
-                <div className="stat-value text-accent">
-                  {t("login.stats.draft.value")}
-                </div>
-                <div className="stat-desc">
-                  {t("login.stats.draft.description")}
-                </div>
-              </div>
             </div>
           </section>
 
