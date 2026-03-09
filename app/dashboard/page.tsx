@@ -2,42 +2,45 @@ import Link from "next/link";
 import { SectionHeader } from "../../components/dashboard/section-header";
 import { getOverviewSnapshot } from "../../lib/dashboard-data";
 import { dashboardNavItems } from "../../lib/dashboard-navigation";
+import { getRequestI18n } from "../../lib/i18n/server";
 
 export default async function DashboardPage() {
   const snapshot = await getOverviewSnapshot();
+  const { t } = await getRequestI18n();
   const featureLinks = dashboardNavItems.filter((item) => item.href !== "/dashboard");
 
   return (
     <div className="space-y-6">
       <SectionHeader
-        badge="Overview"
-        description="Use the sidebar to move between dedicated pages for members, saved activities and planning, and participation stats."
-        title="Weekly dessert club control center"
+        badge={t("overview.badge")}
+        description={t("overview.description")}
+        title={t("overview.title")}
       />
 
       <div className="stats stats-vertical w-full border border-base-300 bg-base-100 shadow lg:stats-horizontal">
         <div className="stat">
-          <div className="stat-title">Members</div>
+          <div className="stat-title">{t("overview.stats.members.title")}</div>
           <div className="stat-value text-primary">{snapshot.memberCount}</div>
           <div className="stat-desc">
-            {snapshot.managerCount} managers in the roster
+            {t("overview.stats.members.description", {
+              count: snapshot.managerCount,
+            })}
           </div>
         </div>
         <div className="stat">
-          <div className="stat-title">Regular activities</div>
+          <div className="stat-title">
+            {t("overview.stats.activities.title")}
+          </div>
           <div className="stat-value text-secondary">
             {snapshot.activityCount}
           </div>
           <div className="stat-desc">
             {snapshot.latestActivity
-              ? `Latest: ${snapshot.latestActivity.activityName}`
-              : "No activities saved yet"}
+              ? t("overview.stats.activities.latest", {
+                  name: snapshot.latestActivity.activityName,
+                })
+              : t("overview.stats.activities.empty")}
           </div>
-        </div>
-        <div className="stat">
-          <div className="stat-title">Navigation mode</div>
-          <div className="stat-value text-accent">Multi-page</div>
-          <div className="stat-desc">Sidebar links now change routes</div>
         </div>
       </div>
 
@@ -49,10 +52,12 @@ export default async function DashboardPage() {
             href={item.href}
           >
             <div className="card-body gap-3">
-              <span className="badge badge-primary badge-outline">Open</span>
-              <h2 className="card-title text-xl">{item.label}</h2>
+              <span className="badge badge-primary badge-outline">
+                {t("overview.cta.open")}
+              </span>
+              <h2 className="card-title text-xl">{t(item.labelKey)}</h2>
               <p className="text-sm leading-6 text-base-content/70">
-                {item.description}
+                {t(item.descriptionKey)}
               </p>
             </div>
           </Link>

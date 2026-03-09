@@ -19,7 +19,7 @@ async function assertAllMembersExist(memberIds: string[]) {
   });
 
   if (memberCount !== uniqueMemberIds.length) {
-    throw new Error("Every participantMemberId must reference an existing member.");
+    throw new Error("errors.validation.activity.memberReference");
   }
 }
 

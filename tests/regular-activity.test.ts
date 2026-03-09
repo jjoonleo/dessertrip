@@ -22,7 +22,7 @@ describe("RegularActivity model", () => {
           targetGroupCount: 2,
         },
       }),
-    ).toThrow("activityDate must be a Saturday in KST.");
+    ).toThrow("errors.validation.activity.saturdayRequired");
   });
 
   it("rejects duplicate participant IDs", async () => {
@@ -37,7 +37,7 @@ describe("RegularActivity model", () => {
           targetGroupCount: 2,
         },
       }),
-    ).toThrow("participantMemberIds must be unique.");
+    ).toThrow("errors.validation.activity.participantsUnique");
   });
 
   it("rejects grouped members that are not selected participants", async () => {
@@ -60,7 +60,7 @@ describe("RegularActivity model", () => {
     });
 
     await expect(activity.validate()).rejects.toThrow(
-      "Grouped members must also be selected participants.",
+      "errors.validation.activity.groupedMembersSelectedOnly",
     );
   });
 

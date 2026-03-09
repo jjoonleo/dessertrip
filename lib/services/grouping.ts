@@ -82,7 +82,7 @@ function assignManagers(drafts: GroupDraft[], managers: Member[]) {
         : [...drafts].sort(sortBySmallestGroup)[0];
 
     if (!targetDraft) {
-      throw new Error("Failed to allocate managers into groups.");
+      throw new Error("errors.grouping.failedManagers");
     }
 
     targetDraft.memberIds.push(manager.id);
@@ -108,7 +108,7 @@ function assignMembersWithBalance(drafts: GroupDraft[], members: Member[]) {
     const targetDraft = eligibleDrafts[0];
 
     if (!targetDraft) {
-      throw new Error("Failed to allocate groups for the selected members.");
+      throw new Error("errors.grouping.failedMembers");
     }
 
     targetDraft.memberIds.push(member.id);
@@ -121,7 +121,7 @@ export function generateBalancedGroups(
   targetGroupCount: number,
 ): ActivityGroup[] {
   if (!Number.isInteger(targetGroupCount) || targetGroupCount < 1) {
-    throw new Error("targetGroupCount must be an integer greater than or equal to 1.");
+    throw new Error("errors.grouping.invalidTarget");
   }
 
   if (members.length === 0) {
@@ -129,7 +129,7 @@ export function generateBalancedGroups(
   }
 
   if (targetGroupCount > members.length) {
-    throw new Error("targetGroupCount cannot be greater than the selected participants.");
+    throw new Error("errors.grouping.targetTooLarge");
   }
 
   const drafts = createGroupDrafts(targetGroupCount);

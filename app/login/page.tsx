@@ -2,9 +2,11 @@ import { redirect } from "next/navigation";
 import { LoginForm } from "../../components/auth/login-form";
 import { ThemeToggle } from "../../components/theme/theme-toggle";
 import { getSession } from "../../lib/auth-server";
+import { getRequestI18n } from "../../lib/i18n/server";
 
 export default async function LoginPage() {
   const session = await getSession();
+  const { t } = await getRequestI18n();
 
   if (session) {
     redirect("/dashboard");
@@ -28,35 +30,38 @@ export default async function LoginPage() {
           <section className="space-y-6">
             <div className="space-y-4">
               <span className="badge badge-primary badge-outline badge-lg">
-                Dessert Club Admin
+                {t("login.hero.badge")}
               </span>
               <h1 className="max-w-3xl text-5xl font-black leading-tight tracking-tight">
-                Manage weekly dessert trips, members, and balanced activity
-                groups in one dashboard.
+                {t("login.hero.title")}
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-base-content/70">
-                The MVP focuses on the core club workflow: one manager login,
-                Mongo-backed member data, Saturday activity planning, random
-                grouping, and participation statistics.
+                {t("login.hero.description")}
               </p>
             </div>
 
             <div className="stats stats-vertical w-full bg-base-100 shadow-xl lg:stats-horizontal">
               <div className="stat">
-                <div className="stat-title">Database</div>
+                <div className="stat-title">{t("login.stats.database.title")}</div>
                 <div className="stat-value text-primary">MongoDB</div>
-                <div className="stat-desc">Member records and activities</div>
-              </div>
-              <div className="stat">
-                <div className="stat-title">Workflow state</div>
-                <div className="stat-value text-secondary">Zustand</div>
-                <div className="stat-desc">Drafts, filters, and UI flows</div>
-              </div>
-              <div className="stat">
-                <div className="stat-title">Draft safety</div>
-                <div className="stat-value text-accent">Persisted</div>
                 <div className="stat-desc">
-                  Activity drafts survive a refresh
+                  {t("login.stats.database.description")}
+                </div>
+              </div>
+              <div className="stat">
+                <div className="stat-title">{t("login.stats.workflow.title")}</div>
+                <div className="stat-value text-secondary">Zustand</div>
+                <div className="stat-desc">
+                  {t("login.stats.workflow.description")}
+                </div>
+              </div>
+              <div className="stat">
+                <div className="stat-title">{t("login.stats.draft.title")}</div>
+                <div className="stat-value text-accent">
+                  {t("login.stats.draft.value")}
+                </div>
+                <div className="stat-desc">
+                  {t("login.stats.draft.description")}
                 </div>
               </div>
             </div>

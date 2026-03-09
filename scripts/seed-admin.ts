@@ -1,5 +1,8 @@
+import { loadEnvConfig } from "@next/env";
 import { connectToDatabase } from "../lib/mongodb";
 import { upsertPredefinedAdminUser } from "../lib/services/admin-users";
+
+loadEnvConfig(process.cwd());
 
 async function main() {
   const { ADMIN_USERNAME, ADMIN_PASSWORD } = process.env;

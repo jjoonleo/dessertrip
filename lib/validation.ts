@@ -7,7 +7,7 @@ function hasUniqueValues(values: string[]) {
 }
 
 export const createMemberInputSchema = z.object({
-  name: z.string().trim().min(1, "Name is required."),
+  name: z.string().trim().min(1, "errors.validation.member.nameRequired"),
   gender: z.enum(genderValues),
   isManager: z.boolean(),
 });
@@ -16,33 +16,35 @@ export const updateMemberInputSchema = createMemberInputSchema
   .partial()
   .refine(
     (value) => Object.keys(value).length > 0,
-    "At least one member field must be updated.",
+    "errors.validation.member.updateRequired",
   );
 
 export const createAdminUserInputSchema = z.object({
-  username: z.string().trim().min(1, "Username is required."),
-  password: z.string().min(8, "Password must be at least 8 characters."),
+  username: z.string().trim().min(1, "errors.validation.admin.usernameRequired"),
+  password: z
+    .string()
+    .min(8, "errors.validation.admin.passwordMin"),
 });
 
 export const activityDateSchema = z
   .string()
-  .refine(isValidDateOnlyString, "activityDate must use YYYY-MM-DD.")
-  .refine(isSaturdayInKst, "activityDate must be a Saturday in KST.");
+  .refine(isValidDateOnlyString, "errors.validation.activity.dateFormat")
+  .refine(isSaturdayInKst, "errors.validation.activity.saturdayRequired");
 
 export const activityGroupInputSchema = z.object({
   groupNumber: z.number().int().positive(),
   memberIds: z
     .array(z.string().trim().min(1))
-    .min(1, "Each group must contain at least one member.")
-    .refine(hasUniqueValues, "Group members must be unique."),
+    .min(1, "errors.validation.activity.groupMemberRequired")
+    .refine(hasUniqueValues, "errors.validation.activity.groupMembersUnique"),
 });
 
 export const createRegularActivityInputSchema = z.object({
   activityDate: activityDateSchema,
-  area: z.string().trim().min(1, "Area is required."),
+  area: z.string().trim().min(1, "errors.validation.activity.areaRequired"),
   participantMemberIds: z
     .array(z.string().trim().min(1))
-    .refine(hasUniqueValues, "participantMemberIds must be unique."),
+    .refine(hasUniqueValues, "errors.validation.activity.participantsUnique"),
   groupConfig: z.object({
     targetGroupCount: z.number().int().min(1),
   }),
@@ -54,7 +56,7 @@ export const updateRegularActivityInputSchema = createRegularActivityInputSchema
   .partial()
   .refine(
     (value) => Object.keys(value).length > 0,
-    "At least one activity field must be updated.",
+    "errors.validation.activity.updateRequired",
   );
 
 export type CreateMemberInput = z.infer<typeof createMemberInputSchema>;

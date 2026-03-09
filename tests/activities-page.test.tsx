@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ActivitiesPage } from "../components/dashboard/activities-page";
 import { useActivitiesStore } from "../lib/stores/activities-store";
 import { useStatsStore } from "../lib/stores/stats-store";
 import type { Member, RegularActivity } from "../lib/types/domain";
+import { renderWithLocale } from "./test-utils";
 
 const pushMock = vi.fn();
 const refreshMock = vi.fn();
@@ -75,8 +76,9 @@ describe("activities page", () => {
   it("opens the new activity form from the list page", async () => {
     const user = userEvent.setup();
 
-    render(
+    renderWithLocale(
       <ActivitiesPage initialActivities={activities} initialMembers={members} />,
+      "en",
     );
 
     await user.click(screen.getByRole("button", { name: "Add activity" }));
@@ -87,8 +89,9 @@ describe("activities page", () => {
   it("navigates to the activity edit route from the activity list", async () => {
     const user = userEvent.setup();
 
-    render(
+    renderWithLocale(
       <ActivitiesPage initialActivities={activities} initialMembers={members} />,
+      "en",
     );
 
     await waitFor(() => {

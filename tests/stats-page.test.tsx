@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, screen, waitFor } from "@testing-library/react";
 import { StatsPage } from "../components/dashboard/stats-page";
 import { useStatsStore } from "../lib/stores/stats-store";
 import type { MemberParticipationStat } from "../lib/types/domain";
+import { renderWithLocale } from "./test-utils";
 
 vi.mock("next/link", () => ({
   default: ({
@@ -49,7 +50,7 @@ describe("stats page", () => {
   });
 
   it("links each member name to their participated activity history", async () => {
-    render(<StatsPage initialStats={stats} />);
+    renderWithLocale(<StatsPage initialStats={stats} />, "en");
 
     await waitFor(() => {
       expect(screen.getByRole("link", { name: "Ari" })).toBeTruthy();

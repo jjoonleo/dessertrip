@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getLocalizedErrorMessage, resolveRequestLocale } from "../lib/i18n/server";
 import { clearSessionCookie, setSessionCookie } from "../lib/auth-server";
 import { connectToDatabase } from "../lib/mongodb";
 import {
@@ -46,18 +47,19 @@ function revalidateDashboardTree() {
   revalidatePath("/dashboard", "layout");
 }
 
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Something went wrong.";
+function getErrorMessage(
+  locale: Awaited<ReturnType<typeof resolveRequestLocale>>,
+  error: unknown,
+) {
+  return getLocalizedErrorMessage(locale, error);
 }
 
 export async function loginAction(input: {
   username: string;
   password: string;
 }): ActionResult<{ username: string }> {
+  const locale = await resolveRequestLocale();
+
   try {
     await connectToDatabase();
     const adminUser = await authenticateAdminUser(input);
@@ -65,7 +67,7 @@ export async function loginAction(input: {
     if (!adminUser) {
       return {
         ok: false,
-        error: "Invalid username or password.",
+        error: getLocalizedErrorMessage(locale, new Error("errors.auth.invalidCredentials")),
       };
     }
 
@@ -82,7 +84,7 @@ export async function loginAction(input: {
   } catch (error) {
     return {
       ok: false,
-      error: getErrorMessage(error),
+      error: getErrorMessage(locale, error),
     };
   }
 }
@@ -101,6 +103,8 @@ export async function logoutAction(): ActionResult<null> {
 export async function createMemberAction(
   input: CreateMemberInput,
 ): ActionResult<MemberRecord> {
+  const locale = await resolveRequestLocale();
+
   try {
     await connectToDatabase();
     const member = await createMember(input);
@@ -113,7 +117,7 @@ export async function createMemberAction(
   } catch (error) {
     return {
       ok: false,
-      error: getErrorMessage(error),
+      error: getErrorMessage(locale, error),
     };
   }
 }
@@ -125,6 +129,8 @@ export async function updateMemberAction(
   member: MemberRecord;
   stats: MemberStatsRecord;
 }> {
+  const locale = await resolveRequestLocale();
+
   try {
     await connectToDatabase();
     const member = await updateMember(id, input);
@@ -132,7 +138,7 @@ export async function updateMemberAction(
     if (!member) {
       return {
         ok: false,
-        error: "Member not found.",
+        error: getLocalizedErrorMessage(locale, new Error("errors.member.notFound")),
       };
     }
 
@@ -149,7 +155,7 @@ export async function updateMemberAction(
   } catch (error) {
     return {
       ok: false,
-      error: getErrorMessage(error),
+      error: getErrorMessage(locale, error),
     };
   }
 }
@@ -160,6 +166,8 @@ export async function archiveMemberAction(
   member: MemberRecord;
   stats: MemberStatsRecord;
 }> {
+  const locale = await resolveRequestLocale();
+
   try {
     await connectToDatabase();
     const member = await archiveMember(id);
@@ -167,7 +175,7 @@ export async function archiveMemberAction(
     if (!member) {
       return {
         ok: false,
-        error: "Member not found.",
+        error: getLocalizedErrorMessage(locale, new Error("errors.member.notFound")),
       };
     }
 
@@ -184,7 +192,7 @@ export async function archiveMemberAction(
   } catch (error) {
     return {
       ok: false,
-      error: getErrorMessage(error),
+      error: getErrorMessage(locale, error),
     };
   }
 }
@@ -195,6 +203,8 @@ export async function restoreMemberAction(
   member: MemberRecord;
   stats: MemberStatsRecord;
 }> {
+  const locale = await resolveRequestLocale();
+
   try {
     await connectToDatabase();
     const member = await restoreMember(id);
@@ -202,7 +212,7 @@ export async function restoreMemberAction(
     if (!member) {
       return {
         ok: false,
-        error: "Member not found.",
+        error: getLocalizedErrorMessage(locale, new Error("errors.member.notFound")),
       };
     }
 
@@ -219,7 +229,7 @@ export async function restoreMemberAction(
   } catch (error) {
     return {
       ok: false,
-      error: getErrorMessage(error),
+      error: getErrorMessage(locale, error),
     };
   }
 }
@@ -230,6 +240,8 @@ export async function createRegularActivityAction(
   activity: RegularActivityRecord;
   stats: MemberStatsRecord;
 }> {
+  const locale = await resolveRequestLocale();
+
   try {
     await connectToDatabase();
     const activity = await createRegularActivity(input);
@@ -246,7 +258,7 @@ export async function createRegularActivityAction(
   } catch (error) {
     return {
       ok: false,
-      error: getErrorMessage(error),
+      error: getErrorMessage(locale, error),
     };
   }
 }
@@ -258,6 +270,8 @@ export async function updateRegularActivityAction(
   activity: RegularActivityRecord;
   stats: MemberStatsRecord;
 }> {
+  const locale = await resolveRequestLocale();
+
   try {
     await connectToDatabase();
     const activity = await updateRegularActivity(id, input);
@@ -265,7 +279,7 @@ export async function updateRegularActivityAction(
     if (!activity) {
       return {
         ok: false,
-        error: "Activity not found.",
+        error: getLocalizedErrorMessage(locale, new Error("errors.activity.notFound")),
       };
     }
 
@@ -282,7 +296,7 @@ export async function updateRegularActivityAction(
   } catch (error) {
     return {
       ok: false,
-      error: getErrorMessage(error),
+      error: getErrorMessage(locale, error),
     };
   }
 }
@@ -293,6 +307,8 @@ export async function deleteRegularActivityAction(
   id: string;
   stats: MemberStatsRecord;
 }> {
+  const locale = await resolveRequestLocale();
+
   try {
     await connectToDatabase();
     const deleted = await deleteRegularActivity(id);
@@ -300,7 +316,7 @@ export async function deleteRegularActivityAction(
     if (!deleted) {
       return {
         ok: false,
-        error: "Activity not found.",
+        error: getLocalizedErrorMessage(locale, new Error("errors.activity.notFound")),
       };
     }
 
@@ -317,7 +333,7 @@ export async function deleteRegularActivityAction(
   } catch (error) {
     return {
       ok: false,
-      error: getErrorMessage(error),
+      error: getErrorMessage(locale, error),
     };
   }
 }

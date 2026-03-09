@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
 import { moveMemberBetweenGroups, type MoveGroupMemberInput } from "../activity-group-dnd";
+import { isTranslationKey, type TranslationKey } from "../i18n/config";
 import { generateBalancedGroups } from "../services/grouping";
 import type { ActivityGroup, Member, RegularActivity } from "../types/domain";
 
@@ -56,8 +57,8 @@ export type ActivityBuilderState = {
   generatedGroups: ActivityGroup[];
   dirty: boolean;
   lastGeneratedAt: string | null;
-  warnings: string[];
-  errors: string[];
+  warnings: TranslationKey[];
+  errors: TranslationKey[];
   hydrateFromActivity: (activity: RegularActivity) => void;
   setActivityDate: (activityDate: string) => void;
   setArea: (area: string) => void;
@@ -71,7 +72,7 @@ export type ActivityBuilderState = {
   generateGroups: (members: Member[]) => void;
   moveGroupMember: (input: MoveGroupMemberInput) => void;
   resetDraft: () => void;
-  setErrors: (errors: string[]) => void;
+  setErrors: (errors: TranslationKey[]) => void;
   clearErrors: () => void;
   clearIfEditing: (activityId: string) => void;
   reconcileParticipants: (members: Member[]) => void;
@@ -89,8 +90,8 @@ const defaultActivityBuilderState = {
   generatedGroups: [] as ActivityGroup[],
   dirty: false,
   lastGeneratedAt: null as string | null,
-  warnings: [] as string[],
-  errors: [] as string[],
+  warnings: [] as TranslationKey[],
+  errors: [] as TranslationKey[],
 };
 
 export const useActivityBuilderStore = create<ActivityBuilderState>()(
@@ -189,7 +190,7 @@ export const useActivityBuilderStore = create<ActivityBuilderState>()(
           state.participantMemberIds.length > 0 &&
           targetGroupCount > selectedManagerCount
             ? [
-                "Group count is greater than the selected manager count, so some groups may not have a manager.",
+                "builder.warning.managerShortage" as const,
               ]
             : [];
 
@@ -207,7 +208,7 @@ export const useActivityBuilderStore = create<ActivityBuilderState>()(
 
         if (selectedMembers.length === 0) {
           set({
-            errors: ["Select at least one participant before generating groups."],
+            errors: ["builder.validation.noParticipantsGenerate"],
           });
           return;
         }
@@ -215,9 +216,7 @@ export const useActivityBuilderStore = create<ActivityBuilderState>()(
         if (targetGroupCount > selectedMembers.length) {
           set({
             targetGroupCount,
-            errors: [
-              "Number of groups cannot be greater than the selected participants.",
-            ],
+            errors: ["builder.validation.targetTooLarge"],
           });
           return;
         }
@@ -238,7 +237,9 @@ export const useActivityBuilderStore = create<ActivityBuilderState>()(
         } catch (error) {
           set({
             errors: [
-              error instanceof Error ? error.message : "Failed to generate groups.",
+              error instanceof Error && isTranslationKey(error.message)
+                ? error.message
+                : "errors.generic",
             ],
           });
         }

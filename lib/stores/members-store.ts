@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import type { AppLocale } from "../i18n/config";
 import type { ArchiveFilter, Gender, Member } from "../types/domain";
 
 type MemberDraft = {
@@ -14,6 +15,7 @@ type ManagerFilter = "all" | "manager" | "member";
 
 export type MembersState = {
   members: Member[];
+  locale: AppLocale;
   search: string;
   genderFilter: GenderFilter;
   managerFilter: ManagerFilter;
@@ -25,7 +27,8 @@ export type MembersState = {
   archiveConfirmMemberId: string | null;
   pending: boolean;
   error: string | null;
-  hydrate: (members: Member[]) => void;
+  hydrate: (members: Member[], locale?: AppLocale) => void;
+  setLocale: (locale: AppLocale) => void;
   setSearch: (search: string) => void;
   setGenderFilter: (genderFilter: GenderFilter) => void;
   setManagerFilter: (managerFilter: ManagerFilter) => void;
@@ -56,6 +59,7 @@ const defaultDraft: MemberDraft = {
 
 export const useMembersStore = create<MembersState>((set) => ({
   members: [],
+  locale: "ko",
   search: "",
   genderFilter: "all",
   managerFilter: "all",
@@ -67,7 +71,8 @@ export const useMembersStore = create<MembersState>((set) => ({
   archiveConfirmMemberId: null,
   pending: false,
   error: null,
-  hydrate: (members) => set({ members }),
+  hydrate: (members, locale = "ko") => set({ members, locale }),
+  setLocale: (locale) => set({ locale }),
   setSearch: (search) => set({ search }),
   setGenderFilter: (genderFilter) => set({ genderFilter }),
   setManagerFilter: (managerFilter) => set({ managerFilter }),
@@ -157,7 +162,7 @@ export const useMembersStore = create<MembersState>((set) => ({
   upsertMember: (member) =>
     set((state) => ({
       members: [...state.members.filter((current) => current.id !== member.id), member]
-        .sort((left, right) => left.name.localeCompare(right.name)),
+        .sort((left, right) => left.name.localeCompare(right.name, state.locale)),
       pending: false,
       error: null,
     })),

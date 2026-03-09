@@ -44,7 +44,7 @@ describe("activity builder store", () => {
 
     expect(state.targetGroupCount).toBe(3);
     expect(state.warnings).toEqual([
-      "Group count is greater than the selected manager count, so some groups may not have a manager.",
+      "builder.warning.managerShortage",
     ]);
     expect(state.generatedGroups).toHaveLength(3);
     expect(state.lastGeneratedAt).not.toBeNull();

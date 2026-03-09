@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import type { AppLocale } from "../i18n/config";
 import type {
   ArchiveFilter,
   Gender,
@@ -13,12 +14,14 @@ type GenderFilter = Gender | "all";
 
 export type StatsState = {
   stats: MemberParticipationStat[];
+  locale: AppLocale;
   search: string;
   genderFilter: GenderFilter;
   archiveFilter: ArchiveFilter;
   sortKey: StatsSortKey;
   sortDirection: SortDirection;
-  hydrate: (stats: MemberParticipationStat[]) => void;
+  hydrate: (stats: MemberParticipationStat[], locale?: AppLocale) => void;
+  setLocale: (locale: AppLocale) => void;
   upsertMemberStat: (stat: MemberParticipationStat) => void;
   setSearch: (search: string) => void;
   setGenderFilter: (genderFilter: GenderFilter) => void;
@@ -29,16 +32,18 @@ export type StatsState = {
 
 export const useStatsStore = create<StatsState>((set) => ({
   stats: [],
+  locale: "ko",
   search: "",
   genderFilter: "all",
   archiveFilter: "active",
   sortKey: "participationCount",
   sortDirection: "desc",
-  hydrate: (stats) => set({ stats }),
+  hydrate: (stats, locale = "ko") => set({ stats, locale }),
+  setLocale: (locale) => set({ locale }),
   upsertMemberStat: (stat) =>
     set((state) => ({
       stats: [...state.stats.filter((current) => current.id !== stat.id), stat].sort(
-        (left, right) => left.name.localeCompare(right.name),
+        (left, right) => left.name.localeCompare(right.name, state.locale),
       ),
   })),
   setSearch: (search) => set({ search }),
@@ -72,7 +77,7 @@ export function selectVisibleStats(state: StatsState) {
     const direction = state.sortDirection === "asc" ? 1 : -1;
 
     if (state.sortKey === "name") {
-      return left.name.localeCompare(right.name) * direction;
+      return left.name.localeCompare(right.name, state.locale) * direction;
     }
 
     return (left.participationCount - right.participationCount) * direction;

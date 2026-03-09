@@ -13,11 +13,11 @@ const regularActivityGroupSchema = new Schema(
   {
     groupNumber: {
       type: Number,
-      required: [true, "groupNumber is required."],
+      required: [true, "errors.validation.activity.groupNumberRequired"],
       min: 1,
       validate: {
         validator: Number.isInteger,
-        message: "groupNumber must be an integer.",
+        message: "errors.validation.activity.groupNumberInteger",
       },
     },
     memberIds: {
@@ -40,11 +40,11 @@ const groupConfigSchema = new Schema(
   {
     targetGroupCount: {
       type: Number,
-      required: [true, "targetGroupCount is required."],
+      required: [true, "errors.validation.activity.targetGroupRequired"],
       min: 1,
       validate: {
         validator: Number.isInteger,
-        message: "targetGroupCount must be an integer.",
+        message: "errors.validation.activity.targetGroupInteger",
       },
     },
   },
@@ -57,21 +57,21 @@ const regularActivitySchema = new Schema(
   {
     activityDate: {
       type: String,
-      required: [true, "activityDate is required."],
+      required: [true, "errors.validation.activity.dateFormat"],
       validate: [
         {
           validator: isValidDateOnlyString,
-          message: "activityDate must use YYYY-MM-DD.",
+          message: "errors.validation.activity.dateFormat",
         },
         {
           validator: isSaturdayInKst,
-          message: "activityDate must be a Saturday in KST.",
+          message: "errors.validation.activity.saturdayRequired",
         },
       ],
     },
     area: {
       type: String,
-      required: [true, "Area is required."],
+      required: [true, "errors.validation.activity.areaRequired"],
       trim: true,
     },
     participantMemberIds: {
@@ -114,7 +114,7 @@ regularActivitySchema.pre("validate", function validateRegularActivity() {
   if (new Set(participantIds).size !== participantIds.length) {
     this.invalidate(
       "participantMemberIds",
-      "participantMemberIds must be unique.",
+      "errors.validation.activity.participantsUnique",
     );
   }
 
@@ -124,7 +124,10 @@ regularActivitySchema.pre("validate", function validateRegularActivity() {
 
   this.groups.forEach((group, index) => {
     if (groupNumbers.has(group.groupNumber)) {
-      this.invalidate(`groups.${index}.groupNumber`, "groupNumber must be unique.");
+      this.invalidate(
+        `groups.${index}.groupNumber`,
+        "errors.validation.activity.groupNumberUnique",
+      );
     }
 
     groupNumbers.add(group.groupNumber);
@@ -132,18 +135,24 @@ regularActivitySchema.pre("validate", function validateRegularActivity() {
     const groupMemberIds = toObjectIdStrings(group.memberIds);
 
     if (groupMemberIds.length === 0) {
-      this.invalidate(`groups.${index}.memberIds`, "Each group must include at least one member.");
+      this.invalidate(
+        `groups.${index}.memberIds`,
+        "errors.validation.activity.groupMemberRequired",
+      );
     }
 
     if (new Set(groupMemberIds).size !== groupMemberIds.length) {
-      this.invalidate(`groups.${index}.memberIds`, "Group members must be unique.");
+      this.invalidate(
+        `groups.${index}.memberIds`,
+        "errors.validation.activity.groupMembersUnique",
+      );
     }
 
     groupMemberIds.forEach((memberId) => {
       if (!participantIdSet.has(memberId)) {
         this.invalidate(
           `groups.${index}.memberIds`,
-          "Grouped members must also be selected participants.",
+          "errors.validation.activity.groupedMembersSelectedOnly",
         );
       }
 
@@ -152,14 +161,14 @@ regularActivitySchema.pre("validate", function validateRegularActivity() {
   });
 
   if (new Set(groupedMemberIds).size !== groupedMemberIds.length) {
-    this.invalidate("groups", "A member cannot appear in multiple groups.");
+    this.invalidate("groups", "errors.validation.activity.memberInMultipleGroups");
   }
 
   if (this.groups.length > 0) {
     if (groupedMemberIds.length !== participantIds.length) {
       this.invalidate(
         "groups",
-        "Saved groups must include every selected participant exactly once.",
+        "errors.validation.activity.groupsMustCoverParticipants",
       );
     }
 
@@ -170,14 +179,14 @@ regularActivitySchema.pre("validate", function validateRegularActivity() {
     if (unassignedMemberIds.length > 0) {
       this.invalidate(
         "groups",
-        "Saved groups must include every selected participant exactly once.",
+        "errors.validation.activity.groupsMustCoverParticipants",
       );
     }
 
     if (!this.groupGeneratedAt) {
       this.invalidate(
         "groupGeneratedAt",
-        "groupGeneratedAt is required when groups are saved.",
+        "errors.validation.activity.groupGeneratedAtRequired",
       );
     }
   }
@@ -185,7 +194,7 @@ regularActivitySchema.pre("validate", function validateRegularActivity() {
   if (this.groups.length === 0 && this.groupGeneratedAt) {
     this.invalidate(
       "groupGeneratedAt",
-      "groupGeneratedAt cannot be set when groups are empty.",
+      "errors.validation.activity.groupGeneratedAtEmptyOnly",
     );
   }
 });

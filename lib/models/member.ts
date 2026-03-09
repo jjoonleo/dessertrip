@@ -4,17 +4,17 @@ const memberSchema = new Schema(
   {
     name: {
       type: String,
-      required: [true, "Name is required."],
+      required: [true, "errors.validation.member.nameRequired"],
       trim: true,
     },
     gender: {
       type: String,
       enum: ["male", "female"],
-      required: [true, "Gender is required."],
+      required: [true, "errors.validation.member.genderRequired"],
     },
     isManager: {
       type: Boolean,
-      required: [true, "isManager is required."],
+      required: [true, "errors.validation.member.isManagerRequired"],
       set: (value: unknown) => {
         if (typeof value !== "boolean") {
           throw new mongoose.Error.CastError("Boolean", value, "isManager");

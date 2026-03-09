@@ -9,6 +9,7 @@ import {
   restoreMemberAction,
   updateMemberAction,
 } from "../../app/actions";
+import { useI18n } from "../i18n/i18n-provider";
 import { useMembersStore, selectVisibleMembers } from "../../lib/stores/members-store";
 import { useStatsStore } from "../../lib/stores/stats-store";
 import type { Member } from "../../lib/types/domain";
@@ -19,6 +20,7 @@ type MembersPageProps = {
 };
 
 export function MembersPage({ initialMembers }: MembersPageProps) {
+  const { locale, t } = useI18n();
   const router = useRouter();
 
   const memberDraft = useMembersStore((state) => state.draft);
@@ -59,10 +61,15 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
 
   const upsertMemberStat = useStatsStore((state) => state.upsertMemberStat);
   const hydrateStats = useStatsStore((state) => state.hydrate);
+  const setStatsLocale = useStatsStore((state) => state.setLocale);
 
   useEffect(() => {
-    hydrateMembers(initialMembers);
-  }, [hydrateMembers, initialMembers]);
+    hydrateMembers(initialMembers, locale);
+  }, [hydrateMembers, initialMembers, locale]);
+
+  useEffect(() => {
+    setStatsLocale(locale);
+  }, [locale, setStatsLocale]);
 
   async function handleCreateMember(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -105,7 +112,7 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
     }
 
     upsertMember(result.data.member);
-    hydrateStats(result.data.stats);
+    hydrateStats(result.data.stats, locale);
     closeEditModal();
     router.refresh();
   }
@@ -127,7 +134,7 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
     }
 
     upsertMember(result.data.member);
-    hydrateStats(result.data.stats);
+    hydrateStats(result.data.stats, locale);
     closeArchiveConfirm();
     router.refresh();
   }
@@ -145,7 +152,7 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
     }
 
     upsertMember(result.data.member);
-    hydrateStats(result.data.stats);
+    hydrateStats(result.data.stats, locale);
     router.refresh();
   }
 
@@ -159,26 +166,30 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
   return (
     <div className="space-y-6">
       <SectionHeader
-        badge="Members"
-        description="Managers can add, edit, archive, and restore members here. Archived members stay in historical records but are hidden from the active roster by default."
-        title="Member management"
+        badge={t("members.badge")}
+        description={t("members.description")}
+        title={t("members.title")}
       />
 
       <div className="stats stats-vertical w-full border border-base-300 bg-base-100 shadow-sm lg:stats-horizontal">
         <div className="stat">
-          <div className="stat-title">All members</div>
+          <div className="stat-title">{t("members.stats.all.title")}</div>
           <div className="stat-value text-primary">{members.length}</div>
-          <div className="stat-desc">Including archived members</div>
+          <div className="stat-desc">{t("members.stats.all.description")}</div>
         </div>
         <div className="stat">
-          <div className="stat-title">Active members</div>
+          <div className="stat-title">{t("members.stats.active.title")}</div>
           <div className="stat-value text-secondary">{activeCount}</div>
-          <div className="stat-desc">Selectable for new activities</div>
+          <div className="stat-desc">
+            {t("members.stats.active.description")}
+          </div>
         </div>
         <div className="stat">
-          <div className="stat-title">Archived</div>
+          <div className="stat-title">{t("members.stats.archived.title")}</div>
           <div className="stat-value text-accent">{archivedCount}</div>
-          <div className="stat-desc">Restorable from this page</div>
+          <div className="stat-desc">
+            {t("members.stats.archived.description")}
+          </div>
         </div>
       </div>
 
@@ -186,10 +197,14 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
         <div className="card-body gap-5">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="space-y-1">
-              <h3 className="text-lg font-semibold">Roster</h3>
+              <h3 className="text-lg font-semibold">
+                {t("members.roster.title")}
+              </h3>
               <p className="text-sm text-base-content/70">
-                Showing {visibleMembers.length} of {members.length} members with the
-                current filters.
+                {t("members.roster.summary", {
+                  visible: visibleMembers.length,
+                  total: members.length,
+                })}
               </p>
             </div>
 
@@ -198,7 +213,7 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
               onClick={openCreateModal}
               type="button"
             >
-              Add user
+              {t("members.addUser")}
             </button>
           </div>
 
@@ -206,7 +221,7 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
             <input
               className="input input-bordered w-full"
               onChange={(event) => setMemberSearch(event.target.value)}
-              placeholder="Search members"
+              placeholder={t("members.filters.searchPlaceholder")}
               value={memberSearch}
             />
             <select
@@ -216,9 +231,9 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
               }
               value={memberGenderFilter}
             >
-              <option value="all">All genders</option>
-              <option value="female">Female</option>
-              <option value="male">Male</option>
+              <option value="all">{t("members.filters.allGenders")}</option>
+              <option value="female">{t("common.gender.female")}</option>
+              <option value="male">{t("common.gender.male")}</option>
             </select>
             <select
               className="select select-bordered w-full"
@@ -229,9 +244,9 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
               }
               value={memberRoleFilter}
             >
-              <option value="all">All roles</option>
-              <option value="manager">Managers</option>
-              <option value="member">Members</option>
+              <option value="all">{t("members.filters.allRoles")}</option>
+              <option value="manager">{t("members.filters.managers")}</option>
+              <option value="member">{t("members.filters.memberOnly")}</option>
             </select>
             <select
               className="select select-bordered w-full"
@@ -242,9 +257,11 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
               }
               value={memberArchiveFilter}
             >
-              <option value="active">Active only</option>
-              <option value="all">All members</option>
-              <option value="archived">Archived only</option>
+              <option value="active">{t("members.filters.activeOnly")}</option>
+              <option value="all">{t("members.filters.allMembers")}</option>
+              <option value="archived">
+                {t("members.filters.archivedOnly")}
+              </option>
             </select>
           </div>
 
@@ -257,37 +274,41 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
           <div className="space-y-3">
             {visibleMembers.length === 0 ? (
               <div className="alert">
-                <span>No members match the current filters.</span>
+                <span>{t("members.empty")}</span>
               </div>
             ) : (
               visibleMembers.map((member) => (
                 <div
                   key={member.id}
-                  className="card border border-base-300 bg-base-200 shadow-sm"
+                  className="card border border-base-300 bg-base-100 shadow-sm"
                 >
-                  <div className="card-body flex-row items-center justify-between gap-4 p-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-base font-semibold">{member.name}</h2>
-                        {member.isManager ? (
-                          <span className="badge badge-secondary">Manager</span>
-                        ) : null}
-                        {member.archivedAt ? (
-                          <span className="badge badge-warning badge-outline">
-                            Archived
-                          </span>
-                        ) : null}
-                      </div>
-                      <span className="badge badge-outline">{member.gender}</span>
+                  <div className="card-body flex-row flex-nowrap items-center gap-4 overflow-x-auto p-4">
+                    <div className="flex min-w-max items-center gap-2">
+                      <h2 className="text-base font-semibold">{member.name}</h2>
+                      <span className="badge badge-outline">
+                        {member.gender === "female"
+                          ? t("common.gender.female")
+                          : t("common.gender.male")}
+                      </span>
+                      {member.isManager ? (
+                        <span className="badge badge-secondary">
+                          {t("members.managerBadge")}
+                        </span>
+                      ) : null}
+                      {member.archivedAt ? (
+                        <span className="badge badge-warning badge-outline">
+                          {t("members.archivedBadge")}
+                        </span>
+                      ) : null}
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="ml-auto flex shrink-0 gap-2">
                       <button
                         className="btn btn-sm btn-outline"
                         onClick={() => openEditModal(member)}
                         type="button"
                       >
-                        Edit
+                        {t("members.actions.edit")}
                       </button>
                       {member.archivedAt ? (
                         <button
@@ -296,7 +317,7 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
                           onClick={() => handleRestoreMember(member.id)}
                           type="button"
                         >
-                          Restore
+                          {t("members.actions.restore")}
                         </button>
                       ) : (
                         <button
@@ -304,7 +325,7 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
                           onClick={() => openArchiveConfirm(member.id)}
                           type="button"
                         >
-                          Archive
+                          {t("members.actions.archive")}
                         </button>
                       )}
                     </div>
@@ -320,26 +341,30 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
         <div className="modal modal-open" role="dialog">
           <div className="modal-box space-y-5">
             <div className="space-y-2">
-              <h2 className="text-xl font-bold">Add user</h2>
+              <h2 className="text-xl font-bold">{t("members.modal.create.title")}</h2>
               <p className="text-sm text-base-content/70">
-                Add a new club member to the Dessertrip roster.
+                {t("members.modal.create.description")}
               </p>
             </div>
 
             <form className="space-y-4" onSubmit={handleCreateMember}>
               <label className="form-control gap-2">
-                <span className="label-text font-medium">Name</span>
+                <span className="label-text font-medium">
+                  {t("members.modal.name")}
+                </span>
                 <input
                   className="input input-bordered w-full"
                   disabled={memberPending}
                   onChange={(event) => setDraftName(event.target.value)}
-                  placeholder="Member name"
+                  placeholder={t("members.modal.namePlaceholder")}
                   value={memberDraft.name}
                 />
               </label>
 
               <label className="form-control gap-2">
-                <span className="label-text font-medium">Gender</span>
+                <span className="label-text font-medium">
+                  {t("members.modal.gender")}
+                </span>
                 <select
                   className="select select-bordered w-full"
                   disabled={memberPending}
@@ -348,8 +373,8 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
                   }
                   value={memberDraft.gender}
                 >
-                  <option value="female">Female</option>
-                  <option value="male">Male</option>
+                  <option value="female">{t("common.gender.female")}</option>
+                  <option value="male">{t("common.gender.male")}</option>
                 </select>
               </label>
 
@@ -362,7 +387,7 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
                   type="checkbox"
                 />
                 <span className="label-text">
-                  This member is also a club manager
+                  {t("members.modal.managerCheckbox")}
                 </span>
               </label>
 
@@ -379,20 +404,22 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
                   onClick={closeCreateModal}
                   type="button"
                 >
-                  Cancel
+                  {t("members.modal.cancel")}
                 </button>
                 <button
                   className="btn btn-primary"
                   disabled={memberPending || memberDraft.name.trim().length === 0}
                   type="submit"
                 >
-                  {memberPending ? "Saving..." : "Add user"}
+                  {memberPending
+                    ? t("members.modal.savePending")
+                    : t("members.addUser")}
                 </button>
               </div>
             </form>
           </div>
           <button
-            aria-label="Close add user modal"
+            aria-label={t("members.modal.closeCreate")}
             className="modal-backdrop"
             onClick={closeCreateModal}
             type="button"
@@ -404,15 +431,19 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
         <div className="modal modal-open" role="dialog">
           <div className="modal-box space-y-5">
             <div className="space-y-2">
-              <h2 className="text-xl font-bold">Edit member</h2>
+              <h2 className="text-xl font-bold">{t("members.modal.edit.title")}</h2>
               <p className="text-sm text-base-content/70">
-                Update {editingMember.name}&apos;s roster information.
+                {t("members.modal.edit.description", {
+                  name: editingMember.name,
+                })}
               </p>
             </div>
 
             <form className="space-y-4" onSubmit={handleSaveEdit}>
               <label className="form-control gap-2">
-                <span className="label-text font-medium">Name</span>
+                <span className="label-text font-medium">
+                  {t("members.modal.name")}
+                </span>
                 <input
                   className="input input-bordered w-full"
                   disabled={memberPending}
@@ -422,7 +453,9 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
               </label>
 
               <label className="form-control gap-2">
-                <span className="label-text font-medium">Gender</span>
+                <span className="label-text font-medium">
+                  {t("members.modal.gender")}
+                </span>
                 <select
                   className="select select-bordered w-full"
                   disabled={memberPending}
@@ -431,8 +464,8 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
                   }
                   value={editDraft.gender}
                 >
-                  <option value="female">Female</option>
-                  <option value="male">Male</option>
+                  <option value="female">{t("common.gender.female")}</option>
+                  <option value="male">{t("common.gender.male")}</option>
                 </select>
               </label>
 
@@ -444,7 +477,9 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
                   onChange={(event) => setEditDraftManager(event.target.checked)}
                   type="checkbox"
                 />
-                <span className="label-text">This member is also a club manager</span>
+                <span className="label-text">
+                  {t("members.modal.managerCheckbox")}
+                </span>
               </label>
 
               {memberError ? (
@@ -460,20 +495,22 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
                   onClick={closeEditModal}
                   type="button"
                 >
-                  Cancel
+                  {t("members.modal.cancel")}
                 </button>
                 <button
                   className="btn btn-primary"
                   disabled={memberPending || editDraft.name.trim().length === 0}
                   type="submit"
                 >
-                  {memberPending ? "Saving..." : "Save changes"}
+                  {memberPending
+                    ? t("members.modal.savePending")
+                    : t("members.modal.save")}
                 </button>
               </div>
             </form>
           </div>
           <button
-            aria-label="Close edit member modal"
+            aria-label={t("members.modal.closeEdit")}
             className="modal-backdrop"
             onClick={closeEditModal}
             type="button"
@@ -485,10 +522,13 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
         <div className="modal modal-open" role="dialog">
           <div className="modal-box space-y-5">
             <div className="space-y-2">
-              <h2 className="text-xl font-bold">Archive member</h2>
+              <h2 className="text-xl font-bold">
+                {t("members.modal.archive.title")}
+              </h2>
               <p className="text-sm text-base-content/70">
-                {archiveCandidate.name} will disappear from the active roster but
-                remain in historical activities and participation stats.
+                {t("members.modal.archive.description", {
+                  name: archiveCandidate.name,
+                })}
               </p>
             </div>
 
@@ -505,7 +545,7 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
                 onClick={closeArchiveConfirm}
                 type="button"
               >
-                Cancel
+                {t("members.modal.cancel")}
               </button>
               <button
                 className="btn btn-warning"
@@ -513,12 +553,14 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
                 onClick={handleArchiveMember}
                 type="button"
               >
-                {memberPending ? "Archiving..." : "Archive"}
+                {memberPending
+                  ? t("members.modal.archivePending")
+                  : t("members.actions.archive")}
               </button>
             </div>
           </div>
           <button
-            aria-label="Close archive member modal"
+            aria-label={t("members.modal.closeArchive")}
             className="modal-backdrop"
             onClick={closeArchiveConfirm}
             type="button"

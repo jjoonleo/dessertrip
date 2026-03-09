@@ -4,16 +4,18 @@ services:
     container_name: dessertrip-mongodb
     restart: unless-stopped
     ports:
-      - "27019:27017"
+      - "${MONGO_PORT:-27019}:27017"
     environment:
-      MONGO_INITDB_DATABASE: dessertrip
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-dessertrip}
     volumes:
       - dessertrip-mongodb-data:/data/db
     healthcheck:
       test:
         [
           "CMD-SHELL",
-          "echo 'db.adminCommand({ ping: 1 }).ok' | mongosh mongodb://127.0.0.1:27017/dessertrip --quiet",
+          "mongosh --username $$MONGO_INITDB_ROOT_USERNAME --password $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin mongodb://127.0.0.1:27017/$$MONGO_INITDB_DATABASE --quiet --eval 'db.adminCommand({ ping: 1 }).ok'",
         ]
       interval: 10s
       timeout: 5s

@@ -4,8 +4,10 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { loginAction } from "../../app/actions";
 import { useAuthStore } from "../../lib/stores/auth-store";
+import { useI18n } from "../i18n/i18n-provider";
 
 export function LoginForm() {
+  const { t } = useI18n();
   const router = useRouter();
   const status = useAuthStore((state) => state.status);
   const username = useAuthStore((state) => state.username);
@@ -49,38 +51,41 @@ export function LoginForm() {
       <div className="card-body gap-6 p-8">
         <div className="space-y-3">
           <span className="badge badge-secondary badge-outline">
-            Manager Login
+            {t("login.form.badge")}
           </span>
           <h2 className="card-title text-3xl font-bold">
-            Sign in to the club dashboard
+            {t("login.form.title")}
           </h2>
           <p className="text-sm leading-6 text-base-content/70">
-            The real session stays on the server in a secure cookie. Zustand
-            only manages the client-side login workflow.
+            {t("login.form.description")}
           </p>
         </div>
 
         <form className="space-y-5" onSubmit={handleSubmit}>
           <label className="form-control w-full gap-2">
-            <span className="label-text font-medium">Username</span>
+            <span className="label-text font-medium">
+              {t("login.form.username")}
+            </span>
             <input
               autoComplete="username"
               className="input input-bordered w-full"
               disabled={pending}
               onChange={(event) => setUsername(event.target.value)}
-              placeholder="Manager username"
+              placeholder={t("login.form.usernamePlaceholder")}
               value={username}
             />
           </label>
 
           <label className="form-control w-full gap-2">
-            <span className="label-text font-medium">Password</span>
+            <span className="label-text font-medium">
+              {t("login.form.password")}
+            </span>
             <input
               autoComplete="current-password"
               className="input input-bordered w-full"
               disabled={pending}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="Password"
+              placeholder={t("login.form.passwordPlaceholder")}
               type="password"
               value={password}
             />
@@ -98,22 +103,22 @@ export function LoginForm() {
             type="submit"
           >
             {pending
-              ? "Signing in..."
+              ? t("login.form.submitPending")
               : status === "authenticated"
-                ? "Signed in"
-                : "Sign in"}
+                ? t("login.form.submitDone")
+                : t("login.form.submitIdle")}
           </button>
 
           <div className="divider text-xs uppercase tracking-[0.24em] text-base-content/50">
-            Included
+            {t("login.form.included")}
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-box bg-base-200 p-4 text-sm">
-              Saturday activity builder with balanced random grouping.
+              {t("login.form.featureBuilder")}
             </div>
             <div className="rounded-box bg-base-200 p-4 text-sm">
-              Member participation stats derived from saved activities.
+              {t("login.form.featureStats")}
             </div>
           </div>
         </form>

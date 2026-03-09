@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useShallow } from "zustand/react/shallow";
 import { deleteRegularActivityAction } from "../../app/actions";
+import { useI18n } from "../i18n/i18n-provider";
 import { useActivitiesStore, selectVisibleActivities } from "../../lib/stores/activities-store";
 import { useStatsStore } from "../../lib/stores/stats-store";
 import type { Member, RegularActivity } from "../../lib/types/domain";
@@ -18,6 +19,7 @@ export function ActivitiesPage({
   initialActivities,
   initialMembers,
 }: ActivitiesPageProps) {
+  const { locale, t } = useI18n();
   const router = useRouter();
 
   const activities = useActivitiesStore((state) => state.activities);
@@ -38,10 +40,15 @@ export function ActivitiesPage({
   );
 
   const hydrateStats = useStatsStore((state) => state.hydrate);
+  const setStatsLocale = useStatsStore((state) => state.setLocale);
 
   useEffect(() => {
     hydrateActivities(initialActivities);
   }, [hydrateActivities, initialActivities]);
+
+  useEffect(() => {
+    setStatsLocale(locale);
+  }, [locale, setStatsLocale]);
 
   const selectedActivity =
     activities.find((activity) => activity.id === selectedActivityId) ?? null;
@@ -62,7 +69,7 @@ export function ActivitiesPage({
     }
 
     removeActivity(result.data.id);
-    hydrateStats(result.data.stats);
+    hydrateStats(result.data.stats, locale);
     router.refresh();
   }
 
@@ -73,30 +80,38 @@ export function ActivitiesPage({
   return (
     <div className="space-y-6">
       <SectionHeader
-        badge="Activities"
-        description="Browse saved Saturday activities, inspect generated groups, and jump into the create or edit form from here."
-        title="Regular activities"
+        badge={t("activities.badge")}
+        description={t("activities.description")}
+        title={t("activities.title")}
       />
 
       <div className="stats stats-vertical w-full border border-base-300 bg-base-100 shadow lg:stats-horizontal">
         <div className="stat">
-          <div className="stat-title">Saved activities</div>
+          <div className="stat-title">{t("activities.stats.saved.title")}</div>
           <div className="stat-value text-primary">{activities.length}</div>
-          <div className="stat-desc">All persisted Saturday records</div>
+          <div className="stat-desc">
+            {t("activities.stats.saved.description")}
+          </div>
         </div>
         <div className="stat">
-          <div className="stat-title">Visible</div>
+          <div className="stat-title">{t("activities.stats.visible.title")}</div>
           <div className="stat-value text-secondary">
             {visibleActivities.length}
           </div>
-          <div className="stat-desc">Current search result</div>
+          <div className="stat-desc">
+            {t("activities.stats.visible.description")}
+          </div>
         </div>
         <div className="stat">
-          <div className="stat-title">Open detail</div>
+          <div className="stat-title">
+            {t("activities.stats.openDetail.title")}
+          </div>
           <div className="stat-value text-accent">
             {selectedActivity ? 1 : 0}
           </div>
-          <div className="stat-desc">Expanded activity panel</div>
+          <div className="stat-desc">
+            {t("activities.stats.openDetail.description")}
+          </div>
         </div>
       </div>
 
@@ -104,9 +119,11 @@ export function ActivitiesPage({
         <div className="card-body gap-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1">
-              <h3 className="text-lg font-semibold">Saved activities</h3>
+              <h3 className="text-lg font-semibold">
+                {t("activities.list.title")}
+              </h3>
               <p className="text-sm text-base-content/70">
-                Search past activities or start a new one from this page.
+                {t("activities.list.description")}
               </p>
             </div>
 
@@ -115,14 +132,14 @@ export function ActivitiesPage({
               onClick={() => router.push("/dashboard/activities/new")}
               type="button"
             >
-              Add activity
+              {t("activities.list.add")}
             </button>
           </div>
 
           <input
             className="input input-bordered w-full"
             onChange={(event) => setActivitySearch(event.target.value)}
-            placeholder="Search by activity name or area"
+            placeholder={t("activities.searchPlaceholder")}
             value={activitySearch}
           />
 
@@ -135,7 +152,7 @@ export function ActivitiesPage({
           <div className="space-y-3">
             {visibleActivities.length === 0 ? (
               <div className="alert">
-                <span>No activities match the current filters.</span>
+                <span>{t("activities.empty")}</span>
               </div>
             ) : (
               visibleActivities.map((activity) => {
@@ -164,14 +181,18 @@ export function ActivitiesPage({
                         <div className="flex flex-wrap items-center gap-2">
                           <h2 className="text-lg font-bold">{activity.activityName}</h2>
                           <span className="badge badge-outline">
-                            {activity.participantMemberIds.length} participants
+                            {t("activities.badge.participants", {
+                              count: activity.participantMemberIds.length,
+                            })}
                           </span>
                           <span className="badge badge-secondary badge-outline">
-                            {activity.groups.length} groups
+                            {t("activities.badge.groups", {
+                              count: activity.groups.length,
+                            })}
                           </span>
                         </div>
                         <p className="text-sm text-base-content/60">
-                          Click to view groups and actions
+                          {t("activities.collapse.hint")}
                         </p>
                       </div>
                     </div>
@@ -183,7 +204,7 @@ export function ActivitiesPage({
                           onClick={() => handleEditActivity(activity.id)}
                           type="button"
                         >
-                          Edit
+                          {t("activities.actions.edit")}
                         </button>
 
                         {pendingDeleteId === activity.id ? (
@@ -194,14 +215,14 @@ export function ActivitiesPage({
                               onClick={() => handleDeleteActivity(activity.id)}
                               type="button"
                             >
-                              Confirm delete
+                              {t("activities.actions.confirmDelete")}
                             </button>
                             <button
                               className="btn btn-ghost btn-sm"
                               onClick={() => markDeletePending(null)}
                               type="button"
                             >
-                              Cancel
+                              {t("activities.actions.cancel")}
                             </button>
                           </>
                         ) : (
@@ -210,14 +231,14 @@ export function ActivitiesPage({
                             onClick={() => markDeletePending(activity.id)}
                             type="button"
                           >
-                            Delete
+                            {t("activities.actions.delete")}
                           </button>
                         )}
                       </div>
 
                       {activity.groups.length === 0 ? (
                         <div className="alert">
-                          <span>No saved groups yet.</span>
+                          <span>{t("activities.groups.empty")}</span>
                         </div>
                       ) : (
                         <div className="grid gap-3">
@@ -228,10 +249,14 @@ export function ActivitiesPage({
                             >
                               <div className="mb-3 flex items-center justify-between">
                                 <h3 className="font-semibold">
-                                  Group {group.groupNumber}
+                                  {t("activities.group.title", {
+                                    number: group.groupNumber,
+                                  })}
                                 </h3>
                                 <span className="badge badge-outline">
-                                  {group.memberIds.length} members
+                                  {t("activities.badge.members", {
+                                    count: group.memberIds.length,
+                                  })}
                                 </span>
                               </div>
                               <div className="flex flex-wrap gap-2">
@@ -240,7 +265,8 @@ export function ActivitiesPage({
                                     key={memberId}
                                     className="badge badge-outline badge-lg"
                                   >
-                                    {memberNameById.get(memberId) ?? "Unknown member"}
+                                    {memberNameById.get(memberId) ??
+                                      t("activities.unknownMember")}
                                   </span>
                                 ))}
                               </div>

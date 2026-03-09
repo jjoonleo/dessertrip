@@ -7,6 +7,7 @@ import { logoutAction } from "../../app/actions";
 import { dashboardNavItems } from "../../lib/dashboard-navigation";
 import { useAuthStore } from "../../lib/stores/auth-store";
 import { useThemeStore } from "../../lib/stores/theme-store";
+import { useI18n } from "../i18n/i18n-provider";
 import { ThemeToggle } from "../theme/theme-toggle";
 
 type DashboardLayoutShellProps = {
@@ -54,6 +55,7 @@ export function DashboardLayoutShell({
   username,
   children,
 }: DashboardLayoutShellProps) {
+  const { t } = useI18n();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -151,7 +153,7 @@ export function DashboardLayoutShell({
           <div className="dashboard-shell__menu-slot flex-none">
             <button
               aria-controls="dashboard-drawer"
-              aria-label="Open navigation"
+              aria-label={t("dashboard.shell.openNavigation")}
               className="dashboard-shell__menu-button btn btn-square btn-ghost"
               onClick={openDrawer}
               type="button"
@@ -163,19 +165,19 @@ export function DashboardLayoutShell({
           <div className="dashboard-shell__header-main flex-1">
             <div className="dashboard-shell__mobile-title">
               <h1 className="text-lg font-black tracking-tight">
-                {currentItem.label}
+                {t(currentItem.labelKey)}
               </h1>
             </div>
 
             <div className="dashboard-shell__desktop-title">
               <span className="badge badge-primary badge-outline mb-2">
-                Club Admin
+                {t("dashboard.badge")}
               </span>
               <h1 className="text-2xl font-black tracking-tight">
-                {currentItem.label}
+                {t(currentItem.labelKey)}
               </h1>
               <p className="text-sm text-base-content/70">
-                {currentItem.description}
+                {t(currentItem.descriptionKey)}
               </p>
             </div>
           </div>
@@ -183,7 +185,7 @@ export function DashboardLayoutShell({
           <div className="dashboard-shell__desktop-actions items-center gap-2">
             <ThemeToggle label={false} />
             <button className="btn btn-outline btn-sm" onClick={handleLogout} type="button">
-              Sign out
+              {t("dashboard.shell.signOut")}
             </button>
           </div>
         </header>
@@ -193,7 +195,7 @@ export function DashboardLayoutShell({
 
       <div className="dashboard-shell__side drawer-side z-40">
         <label
-          aria-label="Dismiss navigation"
+          aria-label={t("dashboard.shell.dismissNavigation")}
           className="dashboard-shell__overlay drawer-overlay bg-neutral/45 backdrop-blur-sm"
           htmlFor="dashboard-drawer"
           onClick={closeDrawer}
@@ -205,10 +207,10 @@ export function DashboardLayoutShell({
             <div className="dashboard-shell__panel-header border-b border-base-300 p-5">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <span className="badge badge-primary badge-outline">
-                  Dessertrip
+                  {t("app.name")}
                 </span>
                 <button
-                  aria-label="Close navigation"
+                  aria-label={t("dashboard.shell.closeNavigation")}
                   className="dashboard-shell__close-button btn btn-square btn-ghost"
                   onClick={closeDrawer}
                   type="button"
@@ -217,11 +219,10 @@ export function DashboardLayoutShell({
                 </button>
               </div>
               <h2 className="text-2xl font-black tracking-tight">
-                Club navigation
+                {t("dashboard.shell.navigationTitle")}
               </h2>
               <p className="mt-2 text-sm text-base-content/70">
-                Navigate between dashboard pages while keeping the shared admin
-                shell and theme controls in place.
+                {t("dashboard.shell.navigationDescription")}
               </p>
             </div>
 
@@ -233,7 +234,7 @@ export function DashboardLayoutShell({
                     href={item.href}
                     onClick={closeDrawer}
                   >
-                    {item.label}
+                    {t(item.labelKey)}
                   </Link>
                 </li>
               ))}
@@ -243,11 +244,13 @@ export function DashboardLayoutShell({
               <div className="space-y-4">
                 <div className="rounded-box border border-base-300 bg-base-200 p-4 shadow-sm">
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-base-content/60">
-                    Signed in
+                    {t("dashboard.shell.signedIn")}
                   </p>
                   <p className="mt-2 text-lg font-bold">{username}</p>
                   <p className="mt-1 text-sm text-base-content/70">
-                    Manager session active on {currentItem.label}
+                    {t("dashboard.shell.activeSessionOn", {
+                      page: t(currentItem.labelKey),
+                    })}
                   </p>
                 </div>
 
@@ -256,7 +259,7 @@ export function DashboardLayoutShell({
                 </div>
 
                 <button className="btn btn-primary w-full" onClick={handleLogout} type="button">
-                  Sign out
+                  {t("dashboard.shell.signOut")}
                 </button>
               </div>
             </div>
@@ -264,14 +267,22 @@ export function DashboardLayoutShell({
             <div className="dashboard-shell__desktop-footer border-t border-base-300 p-4">
               <div className="stats stats-vertical w-full bg-base-200 shadow-sm">
                 <div className="stat">
-                  <div className="stat-title">Signed in</div>
+                  <div className="stat-title">{t("dashboard.shell.signedIn")}</div>
                   <div className="stat-value text-lg">{username}</div>
-                  <div className="stat-desc">Manager session active</div>
+                  <div className="stat-desc">
+                    {t("dashboard.shell.activeSessionOn", {
+                      page: t(currentItem.labelKey),
+                    })}
+                  </div>
                 </div>
                 <div className="stat">
-                  <div className="stat-title">Page</div>
-                  <div className="stat-value text-lg">{currentItem.label}</div>
-                  <div className="stat-desc">Sidebar navigation enabled</div>
+                  <div className="stat-title">{t("dashboard.shell.page")}</div>
+                  <div className="stat-value text-lg">
+                    {t(currentItem.labelKey)}
+                  </div>
+                  <div className="stat-desc">
+                    {t("dashboard.shell.navigationEnabled")}
+                  </div>
                 </div>
               </div>
             </div>

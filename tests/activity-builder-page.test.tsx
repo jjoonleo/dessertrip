@@ -2,7 +2,7 @@
 
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, screen, waitFor } from "@testing-library/react";
 import {
   AutoScrollActivator,
   MouseSensor,
@@ -16,6 +16,7 @@ import { useActivityBuilderStore } from "../lib/stores/activity-builder-store";
 import { useMembersStore } from "../lib/stores/members-store";
 import { useStatsStore } from "../lib/stores/stats-store";
 import type { Member, RegularActivity } from "../lib/types/domain";
+import { renderWithLocale } from "./test-utils";
 
 const refreshMock = vi.fn();
 const replaceMock = vi.fn();
@@ -131,8 +132,9 @@ describe("activity builder page", () => {
   });
 
   it("hydrates the persisted draft store from an edit-route activity", async () => {
-    render(
+    renderWithLocale(
       <ActivityBuilderPage editingActivity={activity} initialMembers={members} />,
+      "en",
     );
 
     await waitFor(() => {
@@ -203,11 +205,12 @@ describe("activity builder page", () => {
       ],
     };
 
-    render(
+    renderWithLocale(
       <ActivityBuilderPage
         editingActivity={legacyActivity}
         initialMembers={members}
       />,
+      "en",
     );
 
     await waitFor(() => {

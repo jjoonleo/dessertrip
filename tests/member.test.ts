@@ -23,7 +23,7 @@ describe("Member model and services", () => {
         gender: "male",
         isManager: false,
       }),
-    ).toThrow("Name is required.");
+    ).toThrow("errors.validation.member.nameRequired");
   });
 
   it("rejects an invalid gender", async () => {
@@ -48,7 +48,7 @@ describe("Member model and services", () => {
 
   it("rejects an empty member update payload", () => {
     expect(() => updateMemberInputSchema.parse({})).toThrow(
-      "At least one member field must be updated.",
+      "errors.validation.member.updateRequired",
     );
   });
 

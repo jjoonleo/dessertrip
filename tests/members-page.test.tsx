@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MembersPage } from "../components/dashboard/members-page";
 import { useMembersStore } from "../lib/stores/members-store";
 import { useStatsStore } from "../lib/stores/stats-store";
 import type { Member, MemberParticipationStat } from "../lib/types/domain";
+import { renderWithLocale } from "./test-utils";
 
 const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
@@ -106,7 +107,7 @@ describe("members page", () => {
       data: createdMember,
     });
 
-    render(<MembersPage initialMembers={[activeMember]} />);
+    renderWithLocale(<MembersPage initialMembers={[activeMember]} />, "en");
 
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.queryByLabelText("Name")).toBeNull();
@@ -139,7 +140,7 @@ describe("members page", () => {
       error: "Name is required.",
     });
 
-    render(<MembersPage initialMembers={[activeMember]} />);
+    renderWithLocale(<MembersPage initialMembers={[activeMember]} />, "en");
 
     await user.click(screen.getByRole("button", { name: "Add user" }));
 
@@ -181,7 +182,7 @@ describe("members page", () => {
       },
     });
 
-    render(<MembersPage initialMembers={[activeMember]} />);
+    renderWithLocale(<MembersPage initialMembers={[activeMember]} />, "en");
 
     await user.click(screen.getByRole("button", { name: "Edit" }));
 
@@ -225,7 +226,10 @@ describe("members page", () => {
       },
     });
 
-    render(<MembersPage initialMembers={[activeMember, archivedMember]} />);
+    renderWithLocale(
+      <MembersPage initialMembers={[activeMember, archivedMember]} />,
+      "en",
+    );
 
     expect(screen.queryByText("Ben")).toBeNull();
 

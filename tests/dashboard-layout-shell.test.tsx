@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import { DashboardLayoutShell } from "../components/dashboard/dashboard-layout-shell";
 import { useAuthStore } from "../lib/stores/auth-store";
 import { useThemeStore } from "../lib/stores/theme-store";
+import { renderWithLocale } from "./test-utils";
 
 let mockedPathname = "/dashboard/stats";
 let mobileMatches = true;
@@ -82,10 +83,11 @@ describe("dashboard layout shell", () => {
   });
 
   it("shows route-based sidebar links and marks the active page", async () => {
-    render(
+    renderWithLocale(
       <DashboardLayoutShell username="test">
         <div>Page body</div>
       </DashboardLayoutShell>,
+      "en",
     );
 
     const activitiesLink = screen.getByRole("link", { name: "Activities" });
@@ -102,10 +104,11 @@ describe("dashboard layout shell", () => {
   });
 
   it("uses mobile drawer controls and closes on route changes", async () => {
-    const { rerender } = render(
+    const { rerender } = renderWithLocale(
       <DashboardLayoutShell username="test">
         <div>Page body</div>
       </DashboardLayoutShell>,
+      "en",
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
@@ -146,10 +149,11 @@ describe("dashboard layout shell", () => {
   it("only locks page scroll while the overlay breakpoint is active", () => {
     mobileMatches = false;
 
-    render(
+    renderWithLocale(
       <DashboardLayoutShell username="test">
         <div>Page body</div>
       </DashboardLayoutShell>,
+      "en",
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));

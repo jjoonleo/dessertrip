@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import type { Member, RegularActivity } from "../../lib/types/domain";
+import { useI18n } from "../i18n/i18n-provider";
 import { SectionHeader } from "./section-header";
 
 type MemberParticipationHistoryPageProps = {
@@ -11,33 +14,49 @@ export function MemberParticipationHistoryPage({
   member,
   activities,
 }: MemberParticipationHistoryPageProps) {
+  const { t } = useI18n();
+
   return (
     <div className="space-y-6">
       <SectionHeader
-        badge="Stats"
-        description={`Review the saved Saturday activities that include ${member.name}.`}
-        title={`${member.name} activity history`}
+        badge={t("history.badge")}
+        description={t("history.description", {
+          name: member.name,
+        })}
+        title={t("history.title", {
+          name: member.name,
+        })}
       />
 
       <div className="stats stats-vertical w-full border border-base-300 bg-base-100 shadow lg:stats-horizontal">
         <div className="stat">
-          <div className="stat-title">Participated activities</div>
+          <div className="stat-title">
+            {t("history.stats.activities.title")}
+          </div>
           <div className="stat-value text-primary">{activities.length}</div>
-          <div className="stat-desc">Saved activities containing this member</div>
+          <div className="stat-desc">
+            {t("history.stats.activities.description")}
+          </div>
         </div>
         <div className="stat">
-          <div className="stat-title">Role</div>
+          <div className="stat-title">{t("history.stats.role.title")}</div>
           <div className="stat-value text-secondary">
-            {member.isManager ? "Manager" : "Member"}
+            {member.isManager
+              ? t("common.role.manager")
+              : t("common.role.member")}
           </div>
-          <div className="stat-desc">Current roster role</div>
+          <div className="stat-desc">{t("history.stats.role.description")}</div>
         </div>
         <div className="stat">
-          <div className="stat-title">Status</div>
+          <div className="stat-title">{t("history.stats.status.title")}</div>
           <div className="stat-value text-accent">
-            {member.archivedAt ? "Archived" : "Active"}
+            {member.archivedAt
+              ? t("common.status.archived")
+              : t("common.status.active")}
           </div>
-          <div className="stat-desc">Roster record state</div>
+          <div className="stat-desc">
+            {t("history.stats.status.description")}
+          </div>
         </div>
       </div>
 
@@ -45,20 +64,22 @@ export function MemberParticipationHistoryPage({
         <div className="card-body gap-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1">
-              <h3 className="text-lg font-semibold">Participated activities</h3>
+              <h3 className="text-lg font-semibold">
+                {t("history.section.title")}
+              </h3>
               <p className="text-sm text-base-content/70">
-                Open any saved activity to review or edit the generated groups.
+                {t("history.section.description")}
               </p>
             </div>
 
             <Link className="btn btn-outline" href="/dashboard/stats">
-              Back to stats
+              {t("history.section.back")}
             </Link>
           </div>
 
           {activities.length === 0 ? (
             <div className="alert">
-              <span>No saved activities include this member yet.</span>
+              <span>{t("history.empty")}</span>
             </div>
           ) : (
             <div className="space-y-3">
@@ -86,14 +107,20 @@ export function MemberParticipationHistoryPage({
 
                         <div className="flex flex-wrap gap-2">
                           <span className="badge badge-primary badge-outline">
-                            {activity.participantMemberIds.length} participants
+                            {t("activities.badge.participants", {
+                              count: activity.participantMemberIds.length,
+                            })}
                           </span>
                           <span className="badge badge-secondary badge-outline">
-                            {activity.groups.length} groups
+                            {t("activities.badge.groups", {
+                              count: activity.groups.length,
+                            })}
                           </span>
                           {memberGroup ? (
                             <span className="badge badge-accent badge-outline">
-                              Group {memberGroup.groupNumber}
+                              {t("history.badge.group", {
+                                number: memberGroup.groupNumber,
+                              })}
                             </span>
                           ) : null}
                         </div>
@@ -104,7 +131,7 @@ export function MemberParticipationHistoryPage({
                           className="btn btn-outline btn-sm"
                           href={`/dashboard/activities/${activity.id}/edit`}
                         >
-                          Open activity
+                          {t("history.openActivity")}
                         </Link>
                       </div>
                     </div>
