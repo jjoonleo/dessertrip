@@ -2,16 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  AutoScrollActivator,
   DndContext,
   DragOverlay,
   MouseSensor,
   TouchSensor,
+  TraversalOrder,
   closestCorners,
   pointerWithin,
   rectIntersection,
   useDroppable,
   useSensor,
   useSensors,
+  type AutoScrollOptions,
   type CollisionDetection,
   type DragOverEvent,
   type DragStartEvent,
@@ -54,6 +57,31 @@ const mobileTouchActivationConstraint = {
   delay: 180,
   tolerance: 8,
 } as const;
+
+function isPageScrollElement(element: Element) {
+  if (typeof document === "undefined") {
+    return false;
+  }
+
+  return (
+    element === document.scrollingElement ||
+    element === document.documentElement ||
+    element === document.body
+  );
+}
+
+const mobileEdgeAutoScrollOptions: AutoScrollOptions = {
+  enabled: true,
+  activator: AutoScrollActivator.Pointer,
+  threshold: {
+    y: 0.24,
+    x: 0.08,
+  },
+  acceleration: 12,
+  interval: 5,
+  order: TraversalOrder.TreeOrder,
+  canScroll: isPageScrollElement,
+};
 
 const activityGroupCollisionDetection: CollisionDetection = (args) => {
   const pointerCollisions = pointerWithin(args);
@@ -307,6 +335,40 @@ export function ActivityBuilderPage({
   useEffect(() => {
     syncWarnings(members);
   }, [members, participantMemberIds, syncWarnings, targetGroupCount]);
+
+  useEffect(() => {
+    if (!activeDragMemberId || typeof document === "undefined") {
+      return;
+    }
+
+    const html = document.documentElement;
+    const body = document.body;
+    const scrollingElement =
+      document.scrollingElement instanceof HTMLElement
+        ? document.scrollingElement
+        : null;
+
+    const previousHtmlScrollBehavior = html.style.scrollBehavior;
+    const previousBodyScrollBehavior = body.style.scrollBehavior;
+    const previousScrollingElementScrollBehavior = scrollingElement?.style.scrollBehavior;
+
+    html.style.scrollBehavior = "auto";
+    body.style.scrollBehavior = "auto";
+
+    if (scrollingElement) {
+      scrollingElement.style.scrollBehavior = "auto";
+    }
+
+    return () => {
+      html.style.scrollBehavior = previousHtmlScrollBehavior;
+      body.style.scrollBehavior = previousBodyScrollBehavior;
+
+      if (scrollingElement) {
+        scrollingElement.style.scrollBehavior =
+          previousScrollingElementScrollBehavior ?? "";
+      }
+    };
+  }, [activeDragMemberId]);
 
   const membersById = new Map(members.map((member) => [member.id, member] as const));
   const selectedMembers = participantMemberIds
@@ -677,7 +739,8 @@ export function ActivityBuilderPage({
               saving.
             </p>
             <p className="text-sm text-base-content/60">
-              Long-press a member to drag on mobile.
+              Long-press a member to drag on mobile, then move near the top or
+              bottom edge to scroll.
             </p>
           </div>
 
@@ -687,7 +750,7 @@ export function ActivityBuilderPage({
             </div>
           ) : (
             <DndContext
-              autoScroll
+              autoScroll={mobileEdgeAutoScrollOptions}
               collisionDetection={activityGroupCollisionDetection}
               onDragCancel={handleDragCancel}
               onDragEnd={handleDragEnd}

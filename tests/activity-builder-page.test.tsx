@@ -1,8 +1,15 @@
 // @vitest-environment jsdom
 
+import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import { MouseSensor, TouchSensor, useSensor } from "@dnd-kit/core";
+import {
+  AutoScrollActivator,
+  MouseSensor,
+  TouchSensor,
+  TraversalOrder,
+  useSensor,
+} from "@dnd-kit/core";
 import { ActivityBuilderPage } from "../components/dashboard/activity-builder-page";
 import { useActivitiesStore } from "../lib/stores/activities-store";
 import { useActivityBuilderStore } from "../lib/stores/activity-builder-store";
@@ -12,6 +19,9 @@ import type { Member, RegularActivity } from "../lib/types/domain";
 
 const refreshMock = vi.fn();
 const replaceMock = vi.fn();
+const dndCoreMocks = vi.hoisted(() => ({
+  lastDndContextProps: null as Record<string, unknown> | null,
+}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -32,6 +42,10 @@ vi.mock("@dnd-kit/core", async () => {
 
   return {
     ...actual,
+    DndContext: (props: Record<string, unknown>) => {
+      dndCoreMocks.lastDndContextProps = props;
+      return createElement(actual.DndContext, props);
+    },
     useSensor: vi.fn(actual.useSensor),
   };
 });
@@ -74,6 +88,7 @@ describe("activity builder page", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
     vi.mocked(useSensor).mockClear();
+    dndCoreMocks.lastDndContextProps = null;
     useMembersStore.setState({
       members: [],
       search: "",
@@ -135,7 +150,11 @@ describe("activity builder page", () => {
       useMembersStore.getState().members.find((member) => member.id === "m2")
         ?.archivedAt,
     ).toBe("2026-03-09T00:00:00.000Z");
-    expect(screen.getByText("Long-press a member to drag on mobile.")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Long-press a member to drag on mobile, then move near the top or bottom edge to scroll.",
+      ),
+    ).toBeTruthy();
     expect(vi.mocked(useSensor)).toHaveBeenCalledWith(MouseSensor);
     expect(vi.mocked(useSensor)).toHaveBeenCalledWith(TouchSensor, {
       activationConstraint: {
@@ -143,6 +162,29 @@ describe("activity builder page", () => {
         tolerance: 8,
       },
     });
+    expect(dndCoreMocks.lastDndContextProps).not.toBeNull();
+    expect(dndCoreMocks.lastDndContextProps?.autoScroll).toMatchObject({
+      enabled: true,
+      activator: AutoScrollActivator.Pointer,
+      threshold: {
+        y: 0.24,
+        x: 0.08,
+      },
+      acceleration: 12,
+      interval: 5,
+      order: TraversalOrder.TreeOrder,
+      canScroll: expect.any(Function),
+    });
+
+    const canScroll = (
+      dndCoreMocks.lastDndContextProps?.autoScroll as {
+        canScroll?: (element: Element) => boolean;
+      }
+    ).canScroll;
+
+    expect(canScroll?.(document.documentElement)).toBe(true);
+    expect(canScroll?.(document.body)).toBe(true);
+    expect(canScroll?.(document.createElement("div"))).toBe(false);
   });
 
   it("falls back to the saved group length when targetGroupCount is missing", async () => {
