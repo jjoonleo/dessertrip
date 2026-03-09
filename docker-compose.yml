@@ -1,0 +1,24 @@
+services:
+  mongodb:
+    image: mongo:8.0
+    container_name: dessertrip-mongodb
+    restart: unless-stopped
+    ports:
+      - "27019:27017"
+    environment:
+      MONGO_INITDB_DATABASE: dessertrip
+    volumes:
+      - dessertrip-mongodb-data:/data/db
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "echo 'db.adminCommand({ ping: 1 }).ok' | mongosh mongodb://127.0.0.1:27017/dessertrip --quiet",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  dessertrip-mongodb-data:
