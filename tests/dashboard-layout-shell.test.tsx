@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { DashboardLayoutShell } from "../components/dashboard/dashboard-layout-shell";
 import { useAuthStore } from "../lib/stores/auth-store";
 import { useThemeStore } from "../lib/stores/theme-store";
 
 let mockedPathname = "/dashboard/stats";
+let mobileMatches = true;
 const pushMock = vi.fn();
 const refreshMock = vi.fn();
 
@@ -47,6 +48,7 @@ afterEach(() => {
 describe("dashboard layout shell", () => {
   beforeEach(() => {
     mockedPathname = "/dashboard/activities/new";
+    mobileMatches = true;
     useThemeStore.setState({
       theme: "pastel",
       drawerOpen: false,
@@ -59,6 +61,24 @@ describe("dashboard layout shell", () => {
       pending: false,
       error: null,
     });
+
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      writable: true,
+      value: vi.fn((query: string) => ({
+        matches: query === "(max-width: 1279px)" ? mobileMatches : false,
+        media: query,
+        onchange: null,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+        addListener: () => undefined,
+        removeListener: () => undefined,
+        dispatchEvent: () => false,
+      })),
+    });
+
+    document.body.style.overflow = "";
+    document.documentElement.style.overflow = "";
   });
 
   it("shows route-based sidebar links and marks the active page", async () => {
@@ -79,5 +99,63 @@ describe("dashboard layout shell", () => {
     await waitFor(() => {
       expect(useAuthStore.getState().status).toBe("authenticated");
     });
+  });
+
+  it("uses mobile drawer controls and closes on route changes", async () => {
+    const { rerender } = render(
+      <DashboardLayoutShell username="test">
+        <div>Page body</div>
+      </DashboardLayoutShell>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+
+    expect(useThemeStore.getState().drawerOpen).toBe(true);
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.documentElement.style.overflow).toBe("hidden");
+    expect(screen.getByRole("button", { name: "Close navigation" })).toBeTruthy();
+    expect(screen.getByText("Theme")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss navigation" }));
+    expect(useThemeStore.getState().drawerOpen).toBe(false);
+    expect(document.body.style.overflow).toBe("");
+
+    fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    expect(useThemeStore.getState().drawerOpen).toBe(true);
+
+    fireEvent.click(screen.getByRole("link", { name: "Members" }));
+    expect(useThemeStore.getState().drawerOpen).toBe(false);
+    expect(document.body.style.overflow).toBe("");
+
+    fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    expect(useThemeStore.getState().drawerOpen).toBe(true);
+
+    mockedPathname = "/dashboard/stats";
+
+    rerender(
+      <DashboardLayoutShell username="test">
+        <div>Page body</div>
+      </DashboardLayoutShell>,
+    );
+
+    await waitFor(() => {
+      expect(useThemeStore.getState().drawerOpen).toBe(false);
+    });
+  });
+
+  it("only locks page scroll while the overlay breakpoint is active", () => {
+    mobileMatches = false;
+
+    render(
+      <DashboardLayoutShell username="test">
+        <div>Page body</div>
+      </DashboardLayoutShell>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+
+    expect(useThemeStore.getState().drawerOpen).toBe(true);
+    expect(document.body.style.overflow).toBe("");
+    expect(document.documentElement.style.overflow).toBe("");
   });
 });

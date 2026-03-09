@@ -31,6 +31,25 @@ function MenuIcon() {
   );
 }
 
+function CloseIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.5"
+      viewBox="0 0 24 24"
+    >
+      <path d="m6 6 12 12M18 6 6 18" />
+    </svg>
+  );
+}
+
+const mobileDrawerQuery = "(max-width: 1279px)";
+
 export function DashboardLayoutShell({
   username,
   children,
@@ -48,6 +67,46 @@ export function DashboardLayoutShell({
     hydrateAuth("authenticated");
   }, [hydrateAuth]);
 
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [pathname, setDrawerOpen]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !drawerOpen) {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia(mobileDrawerQuery);
+    const { body, documentElement } = document;
+    const previousBodyOverflow = body.style.overflow;
+    const previousHtmlOverflow = documentElement.style.overflow;
+
+    const syncScrollLock = () => {
+      const shouldLock = mediaQuery.matches;
+      body.style.overflow = shouldLock ? "hidden" : previousBodyOverflow;
+      documentElement.style.overflow = shouldLock ? "hidden" : previousHtmlOverflow;
+    };
+
+    syncScrollLock();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", syncScrollLock);
+    } else {
+      mediaQuery.addListener(syncScrollLock);
+    }
+
+    return () => {
+      if (typeof mediaQuery.removeEventListener === "function") {
+        mediaQuery.removeEventListener("change", syncScrollLock);
+      } else {
+        mediaQuery.removeListener(syncScrollLock);
+      }
+
+      body.style.overflow = previousBodyOverflow;
+      documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [drawerOpen]);
+
   const currentItem =
     [...dashboardNavItems]
       .sort((left, right) => right.href.length - left.href.length)
@@ -61,7 +120,16 @@ export function DashboardLayoutShell({
     return pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
   }
 
+  function openDrawer() {
+    setDrawerOpen(true);
+  }
+
+  function closeDrawer() {
+    setDrawerOpen(false);
+  }
+
   async function handleLogout() {
+    closeDrawer();
     await logoutAction();
     markUnauthenticated();
     router.push("/login");
@@ -69,29 +137,37 @@ export function DashboardLayoutShell({
   }
 
   return (
-    <div className={`drawer ${drawerOpen ? "drawer-open" : ""} lg:drawer-open`}>
+    <div className="dashboard-shell drawer">
       <input
         checked={drawerOpen}
-        className="drawer-toggle"
+        className="dashboard-shell__toggle drawer-toggle"
         id="dashboard-drawer"
         onChange={(event) => setDrawerOpen(event.target.checked)}
         type="checkbox"
       />
 
-      <div className="drawer-content bg-base-200">
-        <header className="navbar sticky top-0 z-30 border-b border-base-300 bg-base-100/90 px-4 shadow-sm backdrop-blur md:px-6">
-          <div className="flex-none lg:hidden">
+      <div className="dashboard-shell__content drawer-content bg-base-200">
+        <header className="dashboard-shell__header navbar sticky top-0 z-30 border-b border-base-300 bg-base-100/90 shadow-sm backdrop-blur">
+          <div className="dashboard-shell__menu-slot flex-none">
             <button
-              className="btn btn-square btn-ghost"
-              onClick={() => setDrawerOpen(true)}
+              aria-controls="dashboard-drawer"
+              aria-label="Open navigation"
+              className="dashboard-shell__menu-button btn btn-square btn-ghost"
+              onClick={openDrawer}
               type="button"
             >
               <MenuIcon />
             </button>
           </div>
 
-          <div className="flex-1">
-            <div>
+          <div className="dashboard-shell__header-main flex-1">
+            <div className="dashboard-shell__mobile-title">
+              <h1 className="text-lg font-black tracking-tight">
+                {currentItem.label}
+              </h1>
+            </div>
+
+            <div className="dashboard-shell__desktop-title">
               <span className="badge badge-primary badge-outline mb-2">
                 Club Admin
               </span>
@@ -104,7 +180,7 @@ export function DashboardLayoutShell({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="dashboard-shell__desktop-actions items-center gap-2">
             <ThemeToggle label={false} />
             <button className="btn btn-outline btn-sm" onClick={handleLogout} type="button">
               Sign out
@@ -112,23 +188,34 @@ export function DashboardLayoutShell({
           </div>
         </header>
 
-        <main className="space-y-6 p-4 md:p-6 lg:p-8">{children}</main>
+        <main className="dashboard-shell__main space-y-6">{children}</main>
       </div>
 
-      <div className="drawer-side z-40">
+      <div className="dashboard-shell__side drawer-side z-40">
         <label
-          aria-label="Close sidebar"
-          className="drawer-overlay"
+          aria-label="Dismiss navigation"
+          className="dashboard-shell__overlay drawer-overlay bg-neutral/45 backdrop-blur-sm"
           htmlFor="dashboard-drawer"
-          onClick={() => setDrawerOpen(false)}
+          onClick={closeDrawer}
+          role="button"
         />
 
-        <aside className="min-h-full w-80 border-r border-base-300 bg-base-100">
-          <div className="flex h-full flex-col">
-            <div className="border-b border-base-300 p-5">
-              <span className="badge badge-primary badge-outline mb-3">
-                Dessertrip
-              </span>
+        <aside className="dashboard-shell__panel h-dvh min-h-dvh max-w-full overflow-y-auto border-r border-base-300 bg-base-100 shadow-2xl">
+          <div className="dashboard-shell__panel-inner flex min-h-dvh flex-col">
+            <div className="dashboard-shell__panel-header border-b border-base-300 p-5">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <span className="badge badge-primary badge-outline">
+                  Dessertrip
+                </span>
+                <button
+                  aria-label="Close navigation"
+                  className="dashboard-shell__close-button btn btn-square btn-ghost"
+                  onClick={closeDrawer}
+                  type="button"
+                >
+                  <CloseIcon />
+                </button>
+              </div>
               <h2 className="text-2xl font-black tracking-tight">
                 Club navigation
               </h2>
@@ -138,13 +225,13 @@ export function DashboardLayoutShell({
               </p>
             </div>
 
-            <ul className="menu flex-1 gap-2 p-4">
+            <ul className="dashboard-shell__nav menu flex-1 gap-2 p-4 text-base">
               {dashboardNavItems.map((item) => (
                 <li key={item.href}>
                   <Link
                     className={isNavItemActive(item.href) ? "active" : undefined}
                     href={item.href}
-                    onClick={() => setDrawerOpen(false)}
+                    onClick={closeDrawer}
                   >
                     {item.label}
                   </Link>
@@ -152,7 +239,29 @@ export function DashboardLayoutShell({
               ))}
             </ul>
 
-            <div className="border-t border-base-300 p-4">
+            <div className="dashboard-shell__mobile-footer border-t border-base-300 p-4">
+              <div className="space-y-4">
+                <div className="rounded-box border border-base-300 bg-base-200 p-4 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-base-content/60">
+                    Signed in
+                  </p>
+                  <p className="mt-2 text-lg font-bold">{username}</p>
+                  <p className="mt-1 text-sm text-base-content/70">
+                    Manager session active on {currentItem.label}
+                  </p>
+                </div>
+
+                <div className="rounded-box border border-base-300 bg-base-200 p-4 shadow-sm">
+                  <ThemeToggle />
+                </div>
+
+                <button className="btn btn-primary w-full" onClick={handleLogout} type="button">
+                  Sign out
+                </button>
+              </div>
+            </div>
+
+            <div className="dashboard-shell__desktop-footer border-t border-base-300 p-4">
               <div className="stats stats-vertical w-full bg-base-200 shadow-sm">
                 <div className="stat">
                   <div className="stat-title">Signed in</div>

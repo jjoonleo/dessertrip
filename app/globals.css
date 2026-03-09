@@ -46,3 +46,138 @@ body {
     color 180ms ease,
     border-color 180ms ease;
 }
+
+.dashboard-shell__header {
+  padding-inline: 1rem;
+}
+
+.dashboard-shell {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.dashboard-shell__content {
+  grid-column: 1;
+  width: 100%;
+  min-width: 0;
+}
+
+.dashboard-shell__main {
+  padding: 1rem;
+}
+
+.dashboard-shell__mobile-title,
+.dashboard-shell__menu-slot,
+.dashboard-shell__close-button,
+.dashboard-shell__mobile-footer {
+  display: block !important;
+}
+
+.dashboard-shell__desktop-title,
+.dashboard-shell__desktop-actions,
+.dashboard-shell__desktop-footer {
+  display: none !important;
+}
+
+.dashboard-shell__overlay {
+  background-color: color-mix(in oklab, var(--color-neutral) 48%, transparent);
+}
+
+.dashboard-shell__panel {
+  width: calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right));
+}
+
+.dashboard-shell__panel-inner {
+  min-height: 100dvh;
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+}
+
+@media (max-width: 767px) {
+  .dashboard-shell__panel {
+    width: calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right));
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .dashboard-shell__header {
+    padding-inline: 1.5rem;
+  }
+
+  .dashboard-shell__main {
+    padding: 1.5rem;
+  }
+
+  .dashboard-shell__panel {
+    width: min(26rem, calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 2rem));
+  }
+}
+
+@media (min-width: 1280px) {
+  .dashboard-shell {
+    grid-template-columns: 20rem minmax(0, 1fr);
+  }
+
+  .dashboard-shell__toggle {
+    display: none;
+  }
+
+  .dashboard-shell__content {
+    grid-column: 2;
+  }
+
+  .dashboard-shell__side {
+    grid-column: 1;
+    grid-row: 1;
+    display: block;
+    pointer-events: auto;
+    visibility: visible;
+    position: sticky;
+    top: 0;
+    opacity: 1;
+    width: auto;
+    overflow-y: auto;
+  }
+
+  .dashboard-shell__overlay {
+    display: none;
+  }
+
+  .dashboard-shell__side > :not(.dashboard-shell__overlay) {
+    translate: 0;
+  }
+
+  .dashboard-shell__panel {
+    width: 20rem;
+    max-width: none;
+    box-shadow: none;
+  }
+
+  .dashboard-shell__header {
+    padding-inline: 1.5rem;
+  }
+
+  .dashboard-shell__main {
+    padding: 2rem;
+  }
+
+  .dashboard-shell__mobile-title,
+  .dashboard-shell__menu-slot,
+  .dashboard-shell__close-button,
+  .dashboard-shell__mobile-footer {
+    display: none !important;
+  }
+
+  .dashboard-shell__desktop-title {
+    display: block !important;
+  }
+
+  .dashboard-shell__desktop-actions {
+    display: flex !important;
+  }
+
+  .dashboard-shell__desktop-footer {
+    display: block !important;
+  }
+}
