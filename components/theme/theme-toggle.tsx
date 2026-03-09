@@ -19,13 +19,13 @@ export function ThemeToggle({ label = true }: ThemeToggleProps) {
       ) : null}
       <input
         aria-label="Toggle theme"
-        checked={theme === "night"}
+        checked={theme === "dark"}
         className="toggle toggle-primary"
         onChange={() => toggleTheme()}
         type="checkbox"
       />
       <span className="min-w-12 text-right text-xs font-semibold uppercase tracking-[0.2em] text-base-content/70">
-        {theme === "night" ? "Night" : "Pastel"}
+        {theme === "dark" ? "Dark" : "Pastel"}
       </span>
     </label>
   );

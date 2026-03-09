@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 
-export type ThemeName = "pastel" | "night";
+export type ThemeName = "pastel" | "dark";
 
 export type ThemeState = {
   theme: ThemeName;
@@ -32,7 +32,7 @@ function getStoredTheme(): ThemeName | null {
   }
 
   const value = storage.getItem(STORAGE_KEY);
-  return value === "pastel" || value === "night" ? value : null;
+  return value === "pastel" || value === "dark" ? value : null;
 }
 
 function getPreferredTheme(): ThemeName {
@@ -41,7 +41,7 @@ function getPreferredTheme(): ThemeName {
     typeof window.matchMedia === "function" &&
     window.matchMedia("(prefers-color-scheme: dark)").matches
   ) {
-    return "night";
+    return "dark";
   }
 
   return "pastel";
@@ -63,7 +63,7 @@ export const useThemeStore = create<ThemeState>((set) => ({
     }),
   toggleTheme: () =>
     set((state) => {
-      const theme = state.theme === "pastel" ? "night" : "pastel";
+      const theme = state.theme === "pastel" ? "dark" : "pastel";
       persistTheme(theme);
 
       return {

@@ -74,17 +74,17 @@ describe("theme store", () => {
 
     useThemeStore.getState().hydrateTheme();
 
-    expect(useThemeStore.getState().theme).toBe("night");
+    expect(useThemeStore.getState().theme).toBe("dark");
     expect(useThemeStore.getState().hydrated).toBe(true);
   });
 
   it("prefers a stored theme over the system preference", () => {
     const storage = installBrowserMocks({ prefersDark: false });
-    storage.setItem(STORAGE_KEY, "night");
+    storage.setItem(STORAGE_KEY, "dark");
 
     useThemeStore.getState().hydrateTheme();
 
-    expect(useThemeStore.getState().theme).toBe("night");
+    expect(useThemeStore.getState().theme).toBe("dark");
   });
 
   it("persists manual toggles and restores them on the next hydrate", () => {
@@ -95,9 +95,9 @@ describe("theme store", () => {
     store.toggleTheme();
     store.setDrawerOpen(true);
 
-    expect(useThemeStore.getState().theme).toBe("night");
+    expect(useThemeStore.getState().theme).toBe("dark");
     expect(useThemeStore.getState().drawerOpen).toBe(true);
-    expect(storage.getItem(STORAGE_KEY)).toBe("night");
+    expect(storage.getItem(STORAGE_KEY)).toBe("dark");
 
     useThemeStore.setState({
       theme: "pastel",
@@ -107,7 +107,7 @@ describe("theme store", () => {
 
     useThemeStore.getState().hydrateTheme();
 
-    expect(useThemeStore.getState().theme).toBe("night");
+    expect(useThemeStore.getState().theme).toBe("dark");
     expect(useThemeStore.getState().hydrated).toBe(true);
   });
 });

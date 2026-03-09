@@ -20,7 +20,7 @@ export function ThemeController() {
     const root = document.documentElement;
 
     root.setAttribute("data-theme", theme);
-    root.style.colorScheme = theme === "night" ? "dark" : "light";
+    root.style.colorScheme = theme === "dark" ? "dark" : "light";
   }, [hydrated, theme]);
 
   useEffect(() => {
