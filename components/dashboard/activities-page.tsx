@@ -67,15 +67,15 @@ export function ActivitiesPage({
   }
 
   function handleEditActivity(activityId: string) {
-    router.push(`/dashboard/activity-builder?activityId=${activityId}`);
+    router.push(`/dashboard/activities/${activityId}/edit`);
   }
 
   return (
     <div className="space-y-6">
       <SectionHeader
         badge="Activities"
-        description="Browse saved Saturday activities, open their groups, and send edits to the dedicated activity builder page."
-        title="Saved regular activities"
+        description="Browse saved Saturday activities, inspect generated groups, and jump into the create or edit form from here."
+        title="Regular activities"
       />
 
       <div className="stats stats-vertical w-full border border-base-300 bg-base-100 shadow lg:stats-horizontal">
@@ -102,6 +102,23 @@ export function ActivitiesPage({
 
       <section className="card border border-base-300 bg-base-100 shadow-sm">
         <div className="card-body gap-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-1">
+              <h3 className="text-lg font-semibold">Saved activities</h3>
+              <p className="text-sm text-base-content/70">
+                Search past activities or start a new one from this page.
+              </p>
+            </div>
+
+            <button
+              className="btn btn-primary"
+              onClick={() => router.push("/dashboard/activities/new")}
+              type="button"
+            >
+              Add activity
+            </button>
+          </div>
+
           <input
             className="input input-bordered w-full"
             onChange={(event) => setActivitySearch(event.target.value)}

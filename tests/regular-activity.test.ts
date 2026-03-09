@@ -19,7 +19,7 @@ describe("RegularActivity model", () => {
         area: "Gangnam",
         participantMemberIds: [new Types.ObjectId().toString()],
         groupConfig: {
-          targetGroupSize: 2,
+          targetGroupCount: 2,
         },
       }),
     ).toThrow("activityDate must be a Saturday in KST.");
@@ -34,7 +34,7 @@ describe("RegularActivity model", () => {
         area: "Gangnam",
         participantMemberIds: [memberId, memberId],
         groupConfig: {
-          targetGroupSize: 2,
+          targetGroupCount: 2,
         },
       }),
     ).toThrow("participantMemberIds must be unique.");
@@ -48,7 +48,7 @@ describe("RegularActivity model", () => {
       area: "Gangnam",
       participantMemberIds: [participantId],
       groupConfig: {
-        targetGroupSize: 2,
+        targetGroupCount: 1,
       },
       groups: [
         {

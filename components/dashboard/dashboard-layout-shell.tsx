@@ -49,7 +49,17 @@ export function DashboardLayoutShell({
   }, [hydrateAuth]);
 
   const currentItem =
-    dashboardNavItems.find((item) => item.href === pathname) ?? dashboardNavItems[0];
+    [...dashboardNavItems]
+      .sort((left, right) => right.href.length - left.href.length)
+      .find(
+        (item) =>
+          pathname === item.href ||
+          (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`)),
+      ) ?? dashboardNavItems[0];
+
+  function isNavItemActive(href: string) {
+    return pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
+  }
 
   async function handleLogout() {
     await logoutAction();
@@ -132,7 +142,7 @@ export function DashboardLayoutShell({
               {dashboardNavItems.map((item) => (
                 <li key={item.href}>
                   <Link
-                    className={pathname === item.href ? "active" : undefined}
+                    className={isNavItemActive(item.href) ? "active" : undefined}
                     href={item.href}
                     onClick={() => setDrawerOpen(false)}
                   >

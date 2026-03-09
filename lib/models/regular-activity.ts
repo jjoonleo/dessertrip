@@ -38,13 +38,13 @@ const regularActivityGroupSchema = new Schema(
 
 const groupConfigSchema = new Schema(
   {
-    targetGroupSize: {
+    targetGroupCount: {
       type: Number,
-      required: [true, "targetGroupSize is required."],
-      min: 2,
+      required: [true, "targetGroupCount is required."],
+      min: 1,
       validate: {
         validator: Number.isInteger,
-        message: "targetGroupSize must be an integer.",
+        message: "targetGroupCount must be an integer.",
       },
     },
   },

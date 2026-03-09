@@ -44,7 +44,7 @@ export const createRegularActivityInputSchema = z.object({
     .array(z.string().trim().min(1))
     .refine(hasUniqueValues, "participantMemberIds must be unique."),
   groupConfig: z.object({
-    targetGroupSize: z.number().int().min(2),
+    targetGroupCount: z.number().int().min(1),
   }),
   groups: z.array(activityGroupInputSchema).default([]),
   groupGeneratedAt: z.coerce.date().nullable().optional(),

@@ -16,14 +16,9 @@ export const dashboardNavItems: DashboardNavItem[] = [
     description: "Add members, manage manager roles, and filter the roster.",
   },
   {
-    href: "/dashboard/activity-builder",
-    label: "Activity Builder",
-    description: "Select participants, generate balanced groups, and save activities.",
-  },
-  {
     href: "/dashboard/activities",
     label: "Activities",
-    description: "Browse saved Saturday activities and edit or delete them.",
+    description: "Browse activities, create new ones, and manage generated groups.",
   },
   {
     href: "/dashboard/stats",

@@ -11,7 +11,7 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <SectionHeader
         badge="Overview"
-        description="Use the sidebar to move between dedicated pages for members, activity planning, saved activities, and participation stats."
+        description="Use the sidebar to move between dedicated pages for members, saved activities and planning, and participation stats."
         title="Weekly dessert club control center"
       />
 

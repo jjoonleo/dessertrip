@@ -27,7 +27,7 @@ export async function getMembersSnapshot() {
   };
 }
 
-export async function getActivityBuilderSnapshot(activityId?: string) {
+export async function getActivityFormSnapshot(activityId?: string) {
   await connectToDatabase();
 
   if (!activityId) {
@@ -75,5 +75,30 @@ export async function getStatsSnapshot() {
 
   return {
     stats: await getMemberParticipationStats("all"),
+  };
+}
+
+export async function getMemberParticipationHistorySnapshot(memberId: string) {
+  await connectToDatabase();
+
+  const [members, activities] = await Promise.all([
+    listMembers("all"),
+    listRegularActivities(),
+  ]);
+
+  const member = members.find((currentMember) => currentMember.id === memberId) ?? null;
+
+  if (!member) {
+    return {
+      member: null,
+      activities: [],
+    };
+  }
+
+  return {
+    member,
+    activities: activities.filter((activity) =>
+      activity.participantMemberIds.includes(memberId),
+    ),
   };
 }

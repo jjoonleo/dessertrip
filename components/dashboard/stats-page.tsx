@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { useShallow } from "zustand/react/shallow";
 import { useStatsStore, selectVisibleStats } from "../../lib/stores/stats-store";
 import type { Member, MemberParticipationStat } from "../../lib/types/domain";
@@ -133,7 +134,14 @@ export function StatsPage({ initialStats }: StatsPageProps) {
                 ) : (
                   visibleStats.map((stat) => (
                     <tr key={stat.id}>
-                      <td className="font-medium">{stat.name}</td>
+                      <td>
+                        <Link
+                          className="link link-hover font-medium text-primary"
+                          href={`/dashboard/stats/${stat.id}`}
+                        >
+                          {stat.name}
+                        </Link>
+                      </td>
                       <td>{stat.gender}</td>
                       <td>
                         <div className="flex flex-wrap gap-2">

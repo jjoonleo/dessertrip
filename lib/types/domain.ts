@@ -23,7 +23,7 @@ export type RegularActivity = {
   area: string;
   participantMemberIds: string[];
   groupConfig: {
-    targetGroupSize: number;
+    targetGroupCount: number;
   };
   groups: ActivityGroup[];
   groupGeneratedAt: string | null;

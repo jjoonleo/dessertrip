@@ -34,7 +34,7 @@ const activities: RegularActivity[] = [
     area: "Gangnam",
     participantMemberIds: ["m1", "m2"],
     groupConfig: {
-      targetGroupSize: 2,
+      targetGroupCount: 1,
     },
     groups: [
       {
@@ -72,7 +72,19 @@ describe("activities page", () => {
     });
   });
 
-  it("navigates to the builder edit route from the activity list", async () => {
+  it("opens the new activity form from the list page", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ActivitiesPage initialActivities={activities} initialMembers={members} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Add activity" }));
+
+    expect(pushMock).toHaveBeenCalledWith("/dashboard/activities/new");
+  });
+
+  it("navigates to the activity edit route from the activity list", async () => {
     const user = userEvent.setup();
 
     render(
@@ -89,7 +101,7 @@ describe("activities page", () => {
     await user.click(screen.getByRole("button", { name: "Edit" }));
 
     expect(pushMock).toHaveBeenCalledWith(
-      "/dashboard/activity-builder?activityId=activity-1",
+      "/dashboard/activities/activity-1/edit",
     );
   });
 });

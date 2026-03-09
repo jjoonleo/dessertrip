@@ -4,7 +4,6 @@ type GroupDraft = {
   groupNumber: number;
   memberIds: string[];
   genderCounts: Record<Gender, number>;
-  capacity: number;
 };
 
 function shuffle<T>(values: T[]) {
@@ -52,43 +51,50 @@ function createAssignmentOrder(members: Member[]) {
   return assignmentOrder;
 }
 
-function createGroupDrafts(totalMembers: number, targetGroupSize: number) {
-  const groupCount = Math.ceil(totalMembers / targetGroupSize);
-  const baseSize = Math.floor(totalMembers / groupCount);
-  const remainder = totalMembers % groupCount;
-
-  return Array.from({ length: groupCount }, (_, index): GroupDraft => ({
+function createGroupDrafts(targetGroupCount: number) {
+  return Array.from({ length: targetGroupCount }, (_, index): GroupDraft => ({
     groupNumber: index + 1,
     memberIds: [],
     genderCounts: {
       male: 0,
       female: 0,
     },
-    capacity: baseSize + (index < remainder ? 1 : 0),
   }));
 }
 
-export function generateBalancedGroups(
-  members: Member[],
-  targetGroupSize: number,
-): ActivityGroup[] {
-  if (!Number.isInteger(targetGroupSize) || targetGroupSize < 2) {
-    throw new Error("targetGroupSize must be an integer greater than or equal to 2.");
+function sortBySmallestGroup(left: GroupDraft, right: GroupDraft) {
+  const sizeGap = left.memberIds.length - right.memberIds.length;
+
+  if (sizeGap !== 0) {
+    return sizeGap;
   }
 
-  if (members.length === 0) {
-    return [];
-  }
+  return left.groupNumber - right.groupNumber;
+}
 
-  const drafts = createGroupDrafts(members.length, targetGroupSize);
+function assignManagers(drafts: GroupDraft[], managers: Member[]) {
+  const shuffledManagers = shuffle(managers);
+
+  shuffledManagers.forEach((manager, index) => {
+    const targetDraft =
+      index < drafts.length
+        ? drafts[index]
+        : [...drafts].sort(sortBySmallestGroup)[0];
+
+    if (!targetDraft) {
+      throw new Error("Failed to allocate managers into groups.");
+    }
+
+    targetDraft.memberIds.push(manager.id);
+    targetDraft.genderCounts[manager.gender] += 1;
+  });
+}
+
+function assignMembersWithBalance(drafts: GroupDraft[], members: Member[]) {
   const assignmentOrder = createAssignmentOrder(members);
 
   assignmentOrder.forEach((member) => {
-    const eligibleDrafts = drafts.filter(
-      (draft) => draft.memberIds.length < draft.capacity,
-    );
-
-    eligibleDrafts.sort((left, right) => {
+    const eligibleDrafts = [...drafts].sort((left, right) => {
       const sameGenderGap =
         left.genderCounts[member.gender] - right.genderCounts[member.gender];
 
@@ -96,13 +102,7 @@ export function generateBalancedGroups(
         return sameGenderGap;
       }
 
-      const sizeGap = left.memberIds.length - right.memberIds.length;
-
-      if (sizeGap !== 0) {
-        return sizeGap;
-      }
-
-      return left.groupNumber - right.groupNumber;
+      return sortBySmallestGroup(left, right);
     });
 
     const targetDraft = eligibleDrafts[0];
@@ -114,6 +114,30 @@ export function generateBalancedGroups(
     targetDraft.memberIds.push(member.id);
     targetDraft.genderCounts[member.gender] += 1;
   });
+}
+
+export function generateBalancedGroups(
+  members: Member[],
+  targetGroupCount: number,
+): ActivityGroup[] {
+  if (!Number.isInteger(targetGroupCount) || targetGroupCount < 1) {
+    throw new Error("targetGroupCount must be an integer greater than or equal to 1.");
+  }
+
+  if (members.length === 0) {
+    return [];
+  }
+
+  if (targetGroupCount > members.length) {
+    throw new Error("targetGroupCount cannot be greater than the selected participants.");
+  }
+
+  const drafts = createGroupDrafts(targetGroupCount);
+  const managers = members.filter((member) => member.isManager);
+  const nonManagers = members.filter((member) => !member.isManager);
+
+  assignManagers(drafts, managers);
+  assignMembersWithBalance(drafts, nonManagers);
 
   return drafts.map((draft) => ({
     groupNumber: draft.groupNumber,

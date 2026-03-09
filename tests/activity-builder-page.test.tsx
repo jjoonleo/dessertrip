@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { MouseSensor, TouchSensor, useSensor } from "@dnd-kit/core";
 import { ActivityBuilderPage } from "../components/dashboard/activity-builder-page";
 import { useActivitiesStore } from "../lib/stores/activities-store";
 import { useActivityBuilderStore } from "../lib/stores/activity-builder-store";
@@ -24,6 +25,17 @@ vi.mock("../app/actions", () => ({
   updateRegularActivityAction: vi.fn(),
 }));
 
+vi.mock("@dnd-kit/core", async () => {
+  const actual = await vi.importActual<typeof import("@dnd-kit/core")>(
+    "@dnd-kit/core",
+  );
+
+  return {
+    ...actual,
+    useSensor: vi.fn(actual.useSensor),
+  };
+});
+
 const members: Member[] = [
   { id: "m1", name: "Ari", gender: "female", isManager: false, archivedAt: null },
   {
@@ -41,7 +53,7 @@ const activity: RegularActivity = {
   area: "Gangnam",
   participantMemberIds: ["m1", "m2"],
   groupConfig: {
-    targetGroupSize: 2,
+    targetGroupCount: 2,
   },
   groups: [
     {
@@ -61,6 +73,7 @@ afterEach(() => {
 describe("activity builder page", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
+    vi.mocked(useSensor).mockClear();
     useMembersStore.setState({
       members: [],
       search: "",
@@ -116,10 +129,49 @@ describe("activity builder page", () => {
       "m1",
       "m2",
     ]);
+    expect(useActivityBuilderStore.getState().targetGroupCount).toBe(2);
     expect(useMembersStore.getState().members).toHaveLength(2);
     expect(
       useMembersStore.getState().members.find((member) => member.id === "m2")
         ?.archivedAt,
     ).toBe("2026-03-09T00:00:00.000Z");
+    expect(screen.getByText("Long-press a member to drag on mobile.")).toBeTruthy();
+    expect(vi.mocked(useSensor)).toHaveBeenCalledWith(MouseSensor);
+    expect(vi.mocked(useSensor)).toHaveBeenCalledWith(TouchSensor, {
+      activationConstraint: {
+        delay: 180,
+        tolerance: 8,
+      },
+    });
+  });
+
+  it("falls back to the saved group length when targetGroupCount is missing", async () => {
+    const legacyActivity = {
+      ...activity,
+      groupConfig: {} as { targetGroupCount: number },
+      groups: [
+        {
+          groupNumber: 1,
+          memberIds: ["m1"],
+        },
+        {
+          groupNumber: 2,
+          memberIds: ["m2"],
+        },
+      ],
+    };
+
+    render(
+      <ActivityBuilderPage
+        editingActivity={legacyActivity}
+        initialMembers={members}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(useActivityBuilderStore.getState().targetGroupCount).toBe(2);
+    });
+
+    expect(screen.getByDisplayValue("2")).toBeTruthy();
   });
 });

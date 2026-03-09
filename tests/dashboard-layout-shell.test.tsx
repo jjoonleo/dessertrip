@@ -46,7 +46,7 @@ afterEach(() => {
 
 describe("dashboard layout shell", () => {
   beforeEach(() => {
-    mockedPathname = "/dashboard/stats";
+    mockedPathname = "/dashboard/activities/new";
     useThemeStore.setState({
       theme: "pastel",
       drawerOpen: false,
@@ -68,12 +68,12 @@ describe("dashboard layout shell", () => {
       </DashboardLayoutShell>,
     );
 
-    const statsLink = screen.getByRole("link", { name: "Stats" });
+    const activitiesLink = screen.getByRole("link", { name: "Activities" });
     const membersLink = screen.getByRole("link", { name: "Members" });
 
-    expect(statsLink.getAttribute("href")).toBe("/dashboard/stats");
+    expect(activitiesLink.getAttribute("href")).toBe("/dashboard/activities");
     expect(membersLink.getAttribute("href")).toBe("/dashboard/members");
-    expect(statsLink.className).toContain("active");
+    expect(activitiesLink.className).toContain("active");
     expect(screen.getByText("Page body")).toBeTruthy();
 
     await waitFor(() => {
