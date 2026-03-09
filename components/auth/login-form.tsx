@@ -47,8 +47,8 @@ export function LoginForm() {
   }
 
   return (
-    <section className="card border border-base-300 bg-base-100 shadow-2xl">
-      <div className="card-body gap-6 p-8">
+    <section className="card mx-auto w-full max-w-xl border border-base-300 bg-base-100 shadow-2xl lg:mx-0 lg:max-w-none">
+      <div className="card-body gap-6 p-6 sm:p-8">
         <div className="space-y-2">
           <h2 className="card-title text-3xl font-bold">
             {t("login.form.title")}
@@ -58,7 +58,7 @@ export function LoginForm() {
           </p>
         </div>
 
-        <form className="space-y-5" onSubmit={handleSubmit}>
+        <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
           <label className="form-control w-full gap-2">
             <span className="label-text font-medium">
               {t("login.form.username")}

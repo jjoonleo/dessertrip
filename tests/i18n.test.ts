@@ -46,12 +46,12 @@ describe("i18n error localization", () => {
       thrownError = error;
     }
 
-    expect(getLocalizedErrorMessage("ko", thrownError)).toBe("이름은 필수입니다.");
+    expect(getLocalizedErrorMessage("ko", thrownError)).toBe("이름 입력 필요");
     expect(getLocalizedErrorMessage("en", thrownError)).toBe("Name is required.");
   });
 
   it("translates regular UI keys for both locales", () => {
-    expect(translate("ko", "nav.activities.label")).toBe("정기활동");
+    expect(translate("ko", "nav.activities.label")).toBe("정기 활동");
     expect(translate("en", "nav.activities.label")).toBe("Activities");
   });
 });
