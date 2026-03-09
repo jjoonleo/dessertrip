@@ -29,6 +29,7 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
   const memberGenderFilter = useMembersStore((state) => state.genderFilter);
   const memberRoleFilter = useMembersStore((state) => state.managerFilter);
   const memberArchiveFilter = useMembersStore((state) => state.archiveFilter);
+  const isCreateModalOpen = useMembersStore((state) => state.isCreateModalOpen);
   const editMemberId = useMembersStore((state) => state.editMemberId);
   const editDraft = useMembersStore((state) => state.editDraft);
   const archiveConfirmMemberId = useMembersStore(
@@ -39,6 +40,8 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
   const setMemberGenderFilter = useMembersStore((state) => state.setGenderFilter);
   const setMemberRoleFilter = useMembersStore((state) => state.setManagerFilter);
   const setMemberArchiveFilter = useMembersStore((state) => state.setArchiveFilter);
+  const openCreateModal = useMembersStore((state) => state.openCreateModal);
+  const closeCreateModal = useMembersStore((state) => state.closeCreateModal);
   const setDraftName = useMembersStore((state) => state.setDraftName);
   const setDraftGender = useMembersStore((state) => state.setDraftGender);
   const setDraftManager = useMembersStore((state) => state.setDraftManager);
@@ -52,7 +55,6 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
   const upsertMember = useMembersStore((state) => state.upsertMember);
   const setMemberPending = useMembersStore((state) => state.setPending);
   const setMemberError = useMembersStore((state) => state.setError);
-  const resetMemberDraft = useMembersStore((state) => state.resetDraft);
   const visibleMembers = useMembersStore(useShallow(selectVisibleMembers));
 
   const upsertMemberStat = useStatsStore((state) => state.upsertMemberStat);
@@ -80,7 +82,7 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
       ...result.data,
       participationCount: 0,
     });
-    resetMemberDraft();
+    closeCreateModal();
     router.refresh();
   }
 
@@ -162,7 +164,7 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
         title="Member management"
       />
 
-      <div className="stats stats-vertical w-full border border-base-300 bg-base-100 shadow lg:stats-horizontal">
+      <div className="stats stats-vertical w-full border border-base-300 bg-base-100 shadow-sm lg:stats-horizontal">
         <div className="stat">
           <div className="stat-title">All members</div>
           <div className="stat-value text-primary">{members.length}</div>
@@ -182,60 +184,23 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
 
       <section className="card border border-base-300 bg-base-100 shadow-sm">
         <div className="card-body gap-5">
-          <form className="grid gap-4 lg:grid-cols-2" onSubmit={handleCreateMember}>
-            <label className="form-control gap-2">
-              <span className="label-text font-medium">Name</span>
-              <input
-                className="input input-bordered w-full"
-                disabled={memberPending}
-                onChange={(event) => setDraftName(event.target.value)}
-                placeholder="Member name"
-                value={memberDraft.name}
-              />
-            </label>
-
-            <label className="form-control gap-2">
-              <span className="label-text font-medium">Gender</span>
-              <select
-                className="select select-bordered w-full"
-                disabled={memberPending}
-                onChange={(event) =>
-                  setDraftGender(event.target.value as Member["gender"])
-                }
-                value={memberDraft.gender}
-              >
-                <option value="female">Female</option>
-                <option value="male">Male</option>
-              </select>
-            </label>
-
-            <label className="label col-span-full justify-start gap-3 rounded-box border border-base-300 bg-base-200 px-4 py-4">
-              <input
-                checked={memberDraft.isManager}
-                className="checkbox checkbox-primary"
-                disabled={memberPending}
-                onChange={(event) => setDraftManager(event.target.checked)}
-                type="checkbox"
-              />
-              <span className="label-text">
-                This member is also a club manager
-              </span>
-            </label>
-
-            {!editingMember && !archiveCandidate && memberError ? (
-              <div className="alert alert-error col-span-full">
-                <span>{memberError}</span>
-              </div>
-            ) : null}
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="space-y-1">
+              <h3 className="text-lg font-semibold">Roster</h3>
+              <p className="text-sm text-base-content/70">
+                Showing {visibleMembers.length} of {members.length} members with the
+                current filters.
+              </p>
+            </div>
 
             <button
-              className="btn btn-primary col-span-full"
-              disabled={memberPending || memberDraft.name.trim().length === 0}
-              type="submit"
+              className="btn btn-primary"
+              onClick={openCreateModal}
+              type="button"
             >
-              {memberPending ? "Saving member..." : "Add member"}
+              Add user
             </button>
-          </form>
+          </div>
 
           <div className="grid gap-3 md:grid-cols-4">
             <input
@@ -282,6 +247,12 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
               <option value="archived">Archived only</option>
             </select>
           </div>
+
+          {!editingMember && !archiveCandidate && !isCreateModalOpen && memberError ? (
+            <div className="alert alert-error">
+              <span>{memberError}</span>
+            </div>
+          ) : null}
 
           <div className="space-y-3">
             {visibleMembers.length === 0 ? (
@@ -344,6 +315,90 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
           </div>
         </div>
       </section>
+
+      {isCreateModalOpen ? (
+        <div className="modal modal-open" role="dialog">
+          <div className="modal-box space-y-5">
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold">Add user</h2>
+              <p className="text-sm text-base-content/70">
+                Add a new club member to the Dessertrip roster.
+              </p>
+            </div>
+
+            <form className="space-y-4" onSubmit={handleCreateMember}>
+              <label className="form-control gap-2">
+                <span className="label-text font-medium">Name</span>
+                <input
+                  className="input input-bordered w-full"
+                  disabled={memberPending}
+                  onChange={(event) => setDraftName(event.target.value)}
+                  placeholder="Member name"
+                  value={memberDraft.name}
+                />
+              </label>
+
+              <label className="form-control gap-2">
+                <span className="label-text font-medium">Gender</span>
+                <select
+                  className="select select-bordered w-full"
+                  disabled={memberPending}
+                  onChange={(event) =>
+                    setDraftGender(event.target.value as Member["gender"])
+                  }
+                  value={memberDraft.gender}
+                >
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                </select>
+              </label>
+
+              <label className="label justify-start gap-3 rounded-box border border-base-300 bg-base-200 px-4 py-4">
+                <input
+                  checked={memberDraft.isManager}
+                  className="checkbox checkbox-primary"
+                  disabled={memberPending}
+                  onChange={(event) => setDraftManager(event.target.checked)}
+                  type="checkbox"
+                />
+                <span className="label-text">
+                  This member is also a club manager
+                </span>
+              </label>
+
+              {memberError ? (
+                <div className="alert alert-error">
+                  <span>{memberError}</span>
+                </div>
+              ) : null}
+
+              <div className="modal-action mt-0">
+                <button
+                  className="btn btn-ghost"
+                  disabled={memberPending}
+                  onClick={closeCreateModal}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  disabled={memberPending || memberDraft.name.trim().length === 0}
+                  type="submit"
+                >
+                  {memberPending ? "Saving..." : "Add user"}
+                </button>
+              </div>
+            </form>
+          </div>
+          <button
+            aria-label="Close add user modal"
+            className="modal-backdrop"
+            onClick={closeCreateModal}
+            type="button"
+          />
+        </div>
+      ) : null}
 
       {editingMember ? (
         <div className="modal modal-open" role="dialog">
@@ -417,7 +472,12 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
               </div>
             </form>
           </div>
-          <div className="modal-backdrop" onClick={closeEditModal} />
+          <button
+            aria-label="Close edit member modal"
+            className="modal-backdrop"
+            onClick={closeEditModal}
+            type="button"
+          />
         </div>
       ) : null}
 
@@ -457,7 +517,12 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
               </button>
             </div>
           </div>
-          <div className="modal-backdrop" onClick={closeArchiveConfirm} />
+          <button
+            aria-label="Close archive member modal"
+            className="modal-backdrop"
+            onClick={closeArchiveConfirm}
+            type="button"
+          />
         </div>
       ) : null}
     </div>

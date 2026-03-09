@@ -18,6 +18,7 @@ export type MembersState = {
   genderFilter: GenderFilter;
   managerFilter: ManagerFilter;
   archiveFilter: ArchiveFilter;
+  isCreateModalOpen: boolean;
   draft: MemberDraft;
   editMemberId: string | null;
   editDraft: MemberDraft;
@@ -29,6 +30,8 @@ export type MembersState = {
   setGenderFilter: (genderFilter: GenderFilter) => void;
   setManagerFilter: (managerFilter: ManagerFilter) => void;
   setArchiveFilter: (archiveFilter: ArchiveFilter) => void;
+  openCreateModal: () => void;
+  closeCreateModal: () => void;
   setDraftName: (name: string) => void;
   setDraftGender: (gender: Gender) => void;
   setDraftManager: (isManager: boolean) => void;
@@ -57,6 +60,7 @@ export const useMembersStore = create<MembersState>((set) => ({
   genderFilter: "all",
   managerFilter: "all",
   archiveFilter: "active",
+  isCreateModalOpen: false,
   draft: defaultDraft,
   editMemberId: null,
   editDraft: defaultDraft,
@@ -68,6 +72,18 @@ export const useMembersStore = create<MembersState>((set) => ({
   setGenderFilter: (genderFilter) => set({ genderFilter }),
   setManagerFilter: (managerFilter) => set({ managerFilter }),
   setArchiveFilter: (archiveFilter) => set({ archiveFilter }),
+  openCreateModal: () =>
+    set({
+      isCreateModalOpen: true,
+      error: null,
+    }),
+  closeCreateModal: () =>
+    set({
+      isCreateModalOpen: false,
+      draft: defaultDraft,
+      pending: false,
+      error: null,
+    }),
   setDraftName: (name) =>
     set((state) => ({
       draft: {

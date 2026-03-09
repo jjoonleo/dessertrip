@@ -66,6 +66,7 @@ describe("activity builder page", () => {
       search: "",
       genderFilter: "all",
       managerFilter: "all",
+      isCreateModalOpen: false,
       draft: {
         name: "",
         gender: "female",

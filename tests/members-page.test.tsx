@@ -65,6 +65,7 @@ describe("members page", () => {
       genderFilter: "all",
       managerFilter: "all",
       archiveFilter: "active",
+      isCreateModalOpen: false,
       draft: {
         name: "",
         gender: "female",
@@ -88,6 +89,82 @@ describe("members page", () => {
       sortKey: "participationCount",
       sortDirection: "desc",
     });
+  });
+
+  it("opens the add-user modal, creates a member, and closes on success", async () => {
+    const user = userEvent.setup();
+    const createdMember = {
+      id: "m3",
+      name: "Coco",
+      gender: "female" as const,
+      isManager: true,
+      archivedAt: null,
+    };
+
+    mocks.createMemberAction.mockResolvedValue({
+      ok: true,
+      data: createdMember,
+    });
+
+    render(<MembersPage initialMembers={[activeMember]} />);
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByLabelText("Name")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Add user" }));
+
+    const dialog = screen.getByRole("dialog");
+    await user.type(within(dialog).getByLabelText("Name"), "Coco");
+    await user.click(within(dialog).getByLabelText("This member is also a club manager"));
+    await user.click(within(dialog).getByRole("button", { name: "Add user" }));
+
+    expect(mocks.createMemberAction).toHaveBeenCalledWith({
+      name: "Coco",
+      gender: "female",
+      isManager: true,
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    expect(screen.getByText("Coco")).toBeTruthy();
+  });
+
+  it("keeps the add-user modal open on error and resets it when closed", async () => {
+    const user = userEvent.setup();
+
+    mocks.createMemberAction.mockResolvedValue({
+      ok: false,
+      error: "Name is required.",
+    });
+
+    render(<MembersPage initialMembers={[activeMember]} />);
+
+    await user.click(screen.getByRole("button", { name: "Add user" }));
+
+    let dialog = screen.getByRole("dialog");
+    const nameInput = within(dialog).getByLabelText("Name");
+    await user.type(nameInput, "Kai");
+    await user.click(within(dialog).getByRole("button", { name: "Add user" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Name is required.")).toBeTruthy();
+    });
+
+    expect(screen.getByRole("dialog")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Close add user modal" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Add user" }));
+    dialog = screen.getByRole("dialog");
+    expect(
+      (within(dialog).getByLabelText("Name") as HTMLInputElement).value,
+    ).toBe("");
   });
 
   it("opens the edit modal and saves member changes", async () => {
