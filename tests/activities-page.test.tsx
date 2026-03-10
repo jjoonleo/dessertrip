@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ActivitiesPage } from "../components/dashboard/activities-page";
 import { useActivitiesStore } from "../lib/stores/activities-store";
@@ -47,6 +47,18 @@ const activities: Activity[] = [
     groupGeneratedAt: "2026-03-10T10:00:00.000Z",
     activityName: "2026-03-14 Gangnam",
     participationWeight: 1,
+  },
+  {
+    id: "activity-2",
+    activityType: "flash",
+    activityDate: "2026-03-18",
+    area: "Mapo",
+    participantMemberIds: ["m1", "m2"],
+    groupConfig: null,
+    groups: [],
+    groupGeneratedAt: null,
+    activityName: "2026-03-18 Mapo",
+    participationWeight: 0.5,
   },
 ];
 
@@ -100,13 +112,40 @@ describe("activities page", () => {
       expect(screen.getByText("2026-03-14 Gangnam")).toBeTruthy();
     });
 
-    await user.click(
-      screen.getByRole("button", { name: /2026-03-14 gangnam/i }),
-    );
-    await user.click(screen.getByRole("button", { name: "Edit" }));
+    const activityTrigger = screen.getByRole("button", {
+      name: /2026-03-14 gangnam/i,
+    });
+    const activityPanel = activityTrigger.closest(".collapse");
+
+    expect(activityPanel).toBeTruthy();
+
+    await user.click(activityTrigger);
+    await user.click(within(activityPanel as HTMLElement).getByRole("button", { name: "Edit" }));
 
     expect(pushMock).toHaveBeenCalledWith(
       "/dashboard/activities/activity-1/edit",
     );
+  });
+
+  it("shows participant tiles when expanding a flash activity", async () => {
+    const user = userEvent.setup();
+
+    renderWithLocale(
+      <ActivitiesPage initialActivities={activities} initialMembers={members} />,
+      "en",
+    );
+
+    const activityTrigger = screen.getByRole("button", {
+      name: /2026-03-18 mapo/i,
+    });
+    const activityPanel = activityTrigger.closest(".collapse");
+
+    expect(activityPanel).toBeTruthy();
+
+    await user.click(activityTrigger);
+
+    expect(within(activityPanel as HTMLElement).getByText("Participants")).toBeTruthy();
+    expect(within(activityPanel as HTMLElement).getByText("Ari")).toBeTruthy();
+    expect(within(activityPanel as HTMLElement).getByText("Ben")).toBeTruthy();
   });
 });

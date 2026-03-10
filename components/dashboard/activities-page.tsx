@@ -57,6 +57,21 @@ export function ActivitiesPage({
     initialMembers.map((member) => [member.id, member.name] as const),
   );
 
+  function renderMemberTiles(memberIds: string[]) {
+    return (
+      <div className="flex flex-wrap gap-2">
+        {memberIds.map((memberId) => (
+          <span
+            key={memberId}
+            className="badge badge-outline badge-lg"
+          >
+            {memberNameById.get(memberId) ?? t("activities.unknownMember")}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
   async function handleDeleteActivity(activityId: string) {
     setActivityPending(true);
     setActivityError(null);
@@ -267,21 +282,25 @@ export function ActivitiesPage({
                                   })}
                                 </span>
                               </div>
-                              <div className="flex flex-wrap gap-2">
-                                {group.memberIds.map((memberId) => (
-                                  <span
-                                    key={memberId}
-                                    className="badge badge-outline badge-lg"
-                                  >
-                                    {memberNameById.get(memberId) ??
-                                      t("activities.unknownMember")}
-                                  </span>
-                                ))}
-                              </div>
+                              {renderMemberTiles(group.memberIds)}
                             </div>
                           ))}
                         </div>
-                      ) : null}
+                      ) : (
+                        <div className="rounded-box border border-base-300 bg-base-200 p-4">
+                          <div className="mb-3 flex items-center justify-between">
+                            <h3 className="font-semibold">
+                              {t("activities.participants.title")}
+                            </h3>
+                            <span className="badge badge-outline">
+                              {t("activities.badge.participants", {
+                                count: activity.participantMemberIds.length,
+                              })}
+                            </span>
+                          </div>
+                          {renderMemberTiles(activity.participantMemberIds)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
