@@ -259,9 +259,18 @@ export const enMessages = {
   "history.title": "{{name}} activity history",
   "history.description":
     "Review the saved activities that include {{name}}.",
+  "history.descriptionMonth":
+    "Review the saved activities that include {{name}} in {{month}}.",
+  "history.filters.periodDescriptionAll":
+    "Switch to a month to inspect this member's history for that period.",
+  "history.filters.periodDescriptionMonth":
+    "Showing only this member's activity history for {{month}}.",
+  "history.filters.noMonths": "No monthly activity yet",
   "history.stats.score.title": "Participation score",
   "history.stats.score.description":
     "Weighted total across saved activities",
+  "history.stats.score.descriptionMonth":
+    "Weighted total across saved activities in {{month}}",
   "history.stats.role.title": "Role",
   "history.stats.role.description": "Current roster role",
   "history.stats.status.title": "Status",
@@ -269,8 +278,12 @@ export const enMessages = {
   "history.section.title": "Participated activities",
   "history.section.description":
     "Open any saved activity to review or edit its details.",
+  "history.section.descriptionMonth":
+    "Showing only saved activities from {{month}}.",
   "history.section.back": "Back to stats",
   "history.empty": "No saved activities include this member yet.",
+  "history.emptyMonth":
+    "No saved activities include this member in {{month}}.",
   "history.badge.group": "Group {{number}}",
   "history.openActivity": "Open activity",
   "common.activityType.regular": "Regular",
@@ -585,16 +598,25 @@ export const koMessages: MessageDictionary = {
   "history.badge": "통계",
   "history.title": "{{name}} 활동 이력",
   "history.description": "저장된 활동 중 {{name}} 참여 기록",
+  "history.descriptionMonth": "{{month}}에 {{name}}가 참여한 활동 기록",
+  "history.filters.periodDescriptionAll":
+    "월을 선택하면 해당 기간의 이력을 볼 수 있습니다.",
+  "history.filters.periodDescriptionMonth":
+    "{{month}} 활동 이력만 표시 중입니다.",
+  "history.filters.noMonths": "월별 활동 없음",
   "history.stats.score.title": "참여 점수",
   "history.stats.score.description": "저장된 활동 기준 가중 합계",
+  "history.stats.score.descriptionMonth": "{{month}} 저장 활동 기준 가중 합계",
   "history.stats.role.title": "역할",
   "history.stats.role.description": "현재 명단 역할",
   "history.stats.status.title": "상태",
   "history.stats.status.description": "명단 기록 상태",
   "history.section.title": "참여한 활동",
   "history.section.description": "저장된 활동 열기, 세부 정보 검토 또는 수정",
+  "history.section.descriptionMonth": "{{month}} 활동만 표시",
   "history.section.back": "통계로 돌아가기",
   "history.empty": "이 멤버가 포함된 저장 활동 없음",
+  "history.emptyMonth": "{{month}}에 이 멤버가 포함된 저장 활동 없음",
   "history.badge.group": "{{number}}조",
   "history.openActivity": "활동 열기",
   "common.activityType.regular": "정기활동",

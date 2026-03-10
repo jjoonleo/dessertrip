@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useShallow } from "zustand/react/shallow";
 import { formatParticipationScore } from "../../lib/participation";
 import {
@@ -18,10 +19,31 @@ import { SectionHeader } from "./section-header";
 
 type StatsPageProps = {
   initialStats: MemberParticipationStat[];
+  initialSelectedPeriod?: StatsPeriod;
 };
 
-export function StatsPage({ initialStats }: StatsPageProps) {
+function getMemberHistoryHref(memberId: string, selectedPeriod: StatsPeriod) {
+  if (selectedPeriod === "all") {
+    return `/dashboard/stats/${memberId}`;
+  }
+
+  return `/dashboard/stats/${memberId}?month=${encodeURIComponent(selectedPeriod)}`;
+}
+
+function isNestedInteractiveElement(target: EventTarget | null) {
+  return (
+    target instanceof HTMLElement &&
+    target.closest("a, button, input, select, textarea") !== null
+  );
+}
+
+export function StatsPage({
+  initialStats,
+  initialSelectedPeriod,
+}: StatsPageProps) {
   const { locale, t } = useI18n();
+  const pathname = usePathname();
+  const router = useRouter();
   const stats = useStatsStore((state) => state.stats);
   const statSearch = useStatsStore((state) => state.search);
   const statGenderFilter = useStatsStore((state) => state.genderFilter);
@@ -44,6 +66,17 @@ export function StatsPage({ initialStats }: StatsPageProps) {
     hydrateStats(initialStats, locale);
   }, [hydrateStats, initialStats, locale]);
 
+  useEffect(() => {
+    if (initialSelectedPeriod) {
+      setSelectedPeriod(initialSelectedPeriod);
+      return;
+    }
+
+    if (useStatsStore.getState().selectedPeriod !== "all") {
+      setSelectedPeriod(getCurrentStatsMonthInKst());
+    }
+  }, [initialSelectedPeriod, setSelectedPeriod]);
+
   const archivedCount = stats.filter((member) => member.archivedAt !== null).length;
   const currentMonth = getCurrentStatsMonthInKst();
   const monthOptions = getAvailableStatsMonths(stats, {
@@ -65,6 +98,10 @@ export function StatsPage({ initialStats }: StatsPageProps) {
       : t("stats.table.participationsMonth", {
           month: activeMonthLabel,
         });
+
+  function openMemberHistory(memberId: string) {
+    router.push(getMemberHistoryHref(memberId, selectedPeriod));
+  }
 
   return (
     <div className="space-y-6">
@@ -153,7 +190,10 @@ export function StatsPage({ initialStats }: StatsPageProps) {
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 className={`btn ${selectedPeriod === "all" ? "btn-primary" : "btn-outline"}`}
-                onClick={() => setSelectedPeriod("all")}
+                onClick={() => {
+                  setSelectedPeriod("all");
+                  router.replace(pathname);
+                }}
                 type="button"
               >
                 {t("stats.filters.allTime")}
@@ -161,9 +201,17 @@ export function StatsPage({ initialStats }: StatsPageProps) {
               <select
                 aria-label={t("stats.filters.month")}
                 className="select select-bordered w-full min-w-52"
-                onChange={(event) =>
-                  setSelectedPeriod(event.target.value as StatsPeriod)
-                }
+                onChange={(event) => {
+                  const nextPeriod = event.target.value as StatsPeriod;
+
+                  setSelectedPeriod(nextPeriod);
+
+                  if (nextPeriod !== "all") {
+                    router.replace(
+                      `${pathname}?month=${encodeURIComponent(nextPeriod)}`,
+                    );
+                  }
+                }}
                 value={activeMonth}
               >
                 {monthOptions.map((month) => (
@@ -252,11 +300,33 @@ export function StatsPage({ initialStats }: StatsPageProps) {
                   </tr>
                 ) : (
                   visibleStats.map((stat) => (
-                    <tr key={stat.id}>
+                    <tr
+                      key={stat.id}
+                      className="cursor-pointer transition-colors hover:bg-base-200/60 focus-within:bg-base-200/60"
+                      onClick={(event) => {
+                        if (isNestedInteractiveElement(event.target)) {
+                          return;
+                        }
+
+                        openMemberHistory(stat.id);
+                      }}
+                      onKeyDown={(event) => {
+                        if (
+                          isNestedInteractiveElement(event.target) ||
+                          (event.key !== "Enter" && event.key !== " ")
+                        ) {
+                          return;
+                        }
+
+                        event.preventDefault();
+                        openMemberHistory(stat.id);
+                      }}
+                      tabIndex={0}
+                    >
                       <td>
                         <Link
                           className="link link-hover font-medium text-primary"
-                          href={`/dashboard/stats/${stat.id}`}
+                          href={getMemberHistoryHref(stat.id, selectedPeriod)}
                         >
                           {stat.name}
                         </Link>

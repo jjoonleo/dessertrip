@@ -3,6 +3,7 @@ import type { MemberParticipationStat } from "./types/domain";
 
 export type StatsMonthKey = `${number}${number}${number}${number}-${number}${number}`;
 export type StatsPeriod = "all" | StatsMonthKey;
+const STATS_MONTH_KEY_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 function getMonthFormatter(locale: AppLocale) {
   return new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", {
@@ -34,6 +35,18 @@ export function getCurrentStatsMonthInKst(
 ): StatsMonthKey {
   const { year, month } = getKstMonthParts(referenceDate);
   return `${year}-${month}` as StatsMonthKey;
+}
+
+export function parseStatsMonthQuery(
+  value: string | string[] | null | undefined,
+): StatsMonthKey | null {
+  const normalizedValue = Array.isArray(value) ? value[0] : value;
+
+  if (!normalizedValue || !STATS_MONTH_KEY_PATTERN.test(normalizedValue)) {
+    return null;
+  }
+
+  return normalizedValue as StatsMonthKey;
 }
 
 export function getParticipationScoreForPeriod(

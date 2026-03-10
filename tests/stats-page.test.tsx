@@ -8,6 +8,11 @@ import { useStatsStore } from "../lib/stores/stats-store";
 import type { MemberParticipationStat } from "../lib/types/domain";
 import { renderWithLocale } from "./test-utils";
 
+const mocks = vi.hoisted(() => ({
+  push: vi.fn(),
+  replace: vi.fn(),
+}));
+
 vi.mock("next/link", () => ({
   default: ({
     children,
@@ -20,6 +25,14 @@ vi.mock("next/link", () => ({
       {children}
     </a>
   ),
+}));
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/dashboard/stats",
+  useRouter: () => ({
+    push: mocks.push,
+    replace: mocks.replace,
+  }),
 }));
 
 const stats: MemberParticipationStat[] = [
@@ -66,7 +79,37 @@ describe("stats page", () => {
     });
   });
 
-  it("links each member name to their participated activity history", async () => {
+  it("links each member name to their month-filtered activity history", async () => {
+    renderWithLocale(<StatsPage initialStats={stats} />, "en");
+
+    await waitFor(() => {
+      expect(screen.getByRole("link", { name: "Ari" })).toBeTruthy();
+    });
+
+    expect(screen.getByRole("link", { name: "Ari" }).getAttribute("href")).toBe(
+      "/dashboard/stats/member-1?month=2026-03",
+    );
+  });
+
+  it("navigates when clicking anywhere on a member row", async () => {
+    const user = userEvent.setup();
+
+    renderWithLocale(<StatsPage initialStats={stats} />, "en");
+
+    const row = screen.getByRole("link", { name: "Ari" }).closest("tr");
+
+    expect(row).toBeTruthy();
+
+    await user.click(row!);
+
+    expect(mocks.push).toHaveBeenCalledWith("/dashboard/stats/member-1?month=2026-03");
+  });
+
+  it("keeps member detail links plain in all-time mode", async () => {
+    useStatsStore.setState({
+      selectedPeriod: "all",
+    });
+
     renderWithLocale(<StatsPage initialStats={stats} />, "en");
 
     await waitFor(() => {
@@ -104,6 +147,7 @@ describe("stats page", () => {
       "2026-02",
     );
 
+    expect(mocks.replace).toHaveBeenCalledWith("/dashboard/stats?month=2026-02");
     expect(screen.getAllByText("February 2026")).toHaveLength(2);
     expect(
       screen.getByRole("columnheader", {
@@ -113,11 +157,15 @@ describe("stats page", () => {
 
     await user.click(screen.getByRole("button", { name: "All time" }));
 
+    expect(mocks.replace).toHaveBeenCalledWith("/dashboard/stats");
     expect(screen.getByText("Tracked members")).toBeTruthy();
     expect(
       screen.getByRole("columnheader", {
         name: "Participation score (all time)",
       }),
     ).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Ari" }).getAttribute("href")).toBe(
+      "/dashboard/stats/member-1",
+    );
   });
 });
