@@ -6,7 +6,14 @@ import type { Activity, Member } from "./types/domain";
 import type { StatsMonthKey } from "./stats";
 
 function getReferencedActivityMembers(members: Member[], activity: Activity) {
-  return members.filter((member) => activity.participantMemberIds.includes(member.id));
+  const groupMemberIds =
+    activity.groups?.flatMap((group) => group.memberIds ?? []) ?? [];
+  const referencedMemberIds = new Set([
+    ...activity.participantMemberIds,
+    ...groupMemberIds,
+  ]);
+
+  return members.filter((member) => referencedMemberIds.has(member.id));
 }
 
 function getEditableActivityMembers(members: Member[], activity: Activity) {
