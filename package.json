@@ -11,7 +11,8 @@
     "db:logs": "docker compose logs -f mongodb",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "seed:admin": "tsx scripts/seed-admin.ts"
+    "seed:admin": "tsx scripts/seed-admin.ts",
+    "verify:restored-backup": "tsx scripts/verify-restored-backup.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

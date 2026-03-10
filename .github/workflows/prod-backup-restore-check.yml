@@ -1,0 +1,136 @@
+name: prod-backup-restore-check
+
+on:
+  schedule:
+    - cron: "0 4 1 * *"
+  workflow_dispatch:
+
+jobs:
+  prod-backup-restore-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    services:
+      mongodb:
+        image: mongo:8.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "echo 'db.adminCommand({ ping: 1 }).ok' | mongosh mongodb://127.0.0.1:27017/test --quiet"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+      AWS_DEFAULT_REGION: ${{ secrets.BACKUP_AWS_REGION }}
+      AWS_EC2_METADATA_DISABLED: "true"
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
+      BACKUP_BUCKET: ${{ secrets.BACKUP_BUCKET }}
+      BACKUP_PREFIX: dessertrip/prod
+      BACKUP_S3_ENDPOINT_URL: ${{ secrets.BACKUP_S3_ENDPOINT_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          required=(
+            BACKUP_BUCKET
+            AWS_ACCESS_KEY_ID
+            AWS_SECRET_ACCESS_KEY
+            AWS_DEFAULT_REGION
+          )
+
+          for key in "${required[@]}"; do
+            if [[ -z "${!key:-}" ]]; then
+              echo "::error title=Missing secret::$key is not set."
+              exit 1
+            fi
+          done
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install MongoDB Database Tools
+        run: ./scripts/install-mongodb-database-tools.sh
+
+      - name: Resolve latest backup object
+        id: latest
+        shell: bash
+        run: |
+          set -euo pipefail
+          endpoint_args=()
+
+          if [[ -n "${BACKUP_S3_ENDPOINT_URL:-}" ]]; then
+            endpoint_args+=(--endpoint-url "$BACKUP_S3_ENDPOINT_URL")
+          fi
+
+          latest_key="$(aws s3api list-objects-v2 \
+            --bucket "$BACKUP_BUCKET" \
+            --prefix "$BACKUP_PREFIX/" \
+            --query 'sort_by(Contents,&LastModified)[-1].Key' \
+            --output text \
+            "${endpoint_args[@]}")"
+
+          if [[ -z "$latest_key" || "$latest_key" == "None" ]]; then
+            echo "::error title=No backup archive found::No backup objects were found under $BACKUP_PREFIX/."
+            exit 1
+          fi
+
+          echo "object_key=$latest_key" >> "$GITHUB_OUTPUT"
+
+      - name: Download latest backup archive
+        id: download
+        shell: bash
+        run: |
+          set -euo pipefail
+          endpoint_args=()
+          archive_path="$RUNNER_TEMP/latest-production-backup.archive.gz"
+
+          if [[ -n "${BACKUP_S3_ENDPOINT_URL:-}" ]]; then
+            endpoint_args+=(--endpoint-url "$BACKUP_S3_ENDPOINT_URL")
+          fi
+
+          aws s3 cp \
+            "s3://$BACKUP_BUCKET/${{ steps.latest.outputs.object_key }}" \
+            "$archive_path" \
+            "${endpoint_args[@]}" \
+            --only-show-errors
+
+          echo "archive_path=$archive_path" >> "$GITHUB_OUTPUT"
+
+      - name: Restore backup into ephemeral MongoDB
+        shell: bash
+        run: |
+          set -euo pipefail
+          mongorestore \
+            --uri "mongodb://127.0.0.1:27017/?directConnection=true" \
+            --nsFrom 'dessertrip.*' \
+            --nsTo 'dessertrip_restore.*' \
+            --drop \
+            --archive="${{ steps.download.outputs.archive_path }}" \
+            --gzip
+
+      - name: Verify restored backup contents
+        env:
+          MONGODB_URI: mongodb://127.0.0.1:27017/dessertrip_restore?directConnection=true
+          REQUIRED_ADMIN_USERNAME: admin
+          REQUIRED_COLLECTIONS: adminUsers
+        run: npm run verify:restored-backup
+
+      - name: Summarize restore check
+        shell: bash
+        run: |
+          {
+            echo "### Production backup restore check passed"
+            echo
+            echo "- Source key: \`${{ steps.latest.outputs.object_key }}\`"
+            echo "- Restored database: \`dessertrip_restore\`"
+          } >> "$GITHUB_STEP_SUMMARY"
