@@ -40,6 +40,18 @@ export function MemberParticipationHistoryPage({
     ? `/dashboard/stats?month=${encodeURIComponent(selectedMonth)}`
     : "/dashboard/stats";
 
+  function getActivityDetailHref(activityId: string) {
+    const params = new URLSearchParams({
+      memberId: member.id,
+    });
+
+    if (selectedMonth) {
+      params.set("month", selectedMonth);
+    }
+
+    return `/dashboard/activities/${activityId}?${params.toString()}`;
+  }
+
   return (
     <div className="space-y-6">
       <SectionHeader
@@ -231,7 +243,7 @@ export function MemberParticipationHistoryPage({
                       <div className="card-actions justify-end">
                         <Link
                           className="btn btn-outline btn-sm"
-                          href={`/dashboard/activities/${activity.id}/edit`}
+                          href={getActivityDetailHref(activity.id)}
                         >
                           {t("history.openActivity")}
                         </Link>

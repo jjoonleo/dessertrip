@@ -2,7 +2,32 @@ import { connectToDatabase } from "./mongodb";
 import { getActivity, listActivities } from "./services/activities";
 import { listMembers } from "./services/members";
 import { getMemberParticipationStats } from "./services/member-stats";
+import type { Activity, Member } from "./types/domain";
 import type { StatsMonthKey } from "./stats";
+
+function getReferencedActivityMembers(members: Member[], activity: Activity) {
+  return members.filter((member) => activity.participantMemberIds.includes(member.id));
+}
+
+function getEditableActivityMembers(members: Member[], activity: Activity) {
+  return members.filter(
+    (member) =>
+      member.archivedAt === null ||
+      activity.participantMemberIds.includes(member.id),
+  );
+}
+
+async function getExistingActivitySnapshot(activityId: string) {
+  const [members, activity] = await Promise.all([
+    listMembers("all"),
+    getActivity(activityId),
+  ]);
+
+  return {
+    members,
+    activity,
+  };
+}
 
 export async function getOverviewSnapshot() {
   await connectToDatabase();
@@ -38,22 +63,25 @@ export async function getActivityFormSnapshot(activityId?: string) {
     };
   }
 
-  const [members, editingActivity] = await Promise.all([
-    listMembers("all"),
-    getActivity(activityId),
-  ]);
-
-  const visibleMembers = editingActivity
-    ? members.filter(
-        (member) =>
-          member.archivedAt === null ||
-          editingActivity.participantMemberIds.includes(member.id),
-      )
+  const { members, activity } = await getExistingActivitySnapshot(activityId);
+  const visibleMembers = activity
+    ? getEditableActivityMembers(members, activity)
     : members.filter((member) => member.archivedAt === null);
 
   return {
     members: visibleMembers,
-    editingActivity,
+    editingActivity: activity,
+  };
+}
+
+export async function getActivityDetailSnapshot(activityId: string) {
+  await connectToDatabase();
+
+  const { members, activity } = await getExistingActivitySnapshot(activityId);
+
+  return {
+    activity,
+    members: activity ? getReferencedActivityMembers(members, activity) : [],
   };
 }
 
