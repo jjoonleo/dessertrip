@@ -127,6 +127,7 @@ describe("activity builder page", () => {
       search: "",
       genderFilter: "all",
       archiveFilter: "active",
+      selectedPeriod: "2026-03",
       sortKey: "participationScore",
       sortDirection: "desc",
     });

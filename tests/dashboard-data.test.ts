@@ -141,6 +141,20 @@ describe("dashboard data", () => {
         activityName: "2026-03-21 Mapo",
         participationWeight: 0.5,
       },
+      {
+        id: "activity-3",
+        activityType: "regular",
+        activityDate: "2026-04-11",
+        area: "Jamsil",
+        participantMemberIds: ["m1"],
+        groupConfig: {
+          targetGroupCount: 1,
+        },
+        groups: [],
+        groupGeneratedAt: null,
+        activityName: "2026-04-11 Jamsil",
+        participationWeight: 1,
+      },
     ]);
 
     const snapshot = await getMemberParticipationHistorySnapshot("m1");
@@ -150,6 +164,53 @@ describe("dashboard data", () => {
     expect(snapshot.member?.id).toBe("m1");
     expect(snapshot.activities.map((activity) => activity.id)).toEqual([
       "activity-1",
+      "activity-3",
+    ]);
+  });
+
+  it("filters member participation history by the selected month", async () => {
+    mocks.listMembers.mockResolvedValue([
+      {
+        id: "m1",
+        name: "Ari",
+        gender: "female",
+        isManager: false,
+        archivedAt: null,
+      },
+    ]);
+    mocks.listActivities.mockResolvedValue([
+      {
+        id: "activity-1",
+        activityType: "regular",
+        activityDate: "2026-03-14",
+        area: "Gangnam",
+        participantMemberIds: ["m1"],
+        groupConfig: {
+          targetGroupCount: 1,
+        },
+        groups: [],
+        groupGeneratedAt: null,
+        activityName: "2026-03-14 Gangnam",
+        participationWeight: 1,
+      },
+      {
+        id: "activity-2",
+        activityType: "flash",
+        activityDate: "2026-04-18",
+        area: "Mapo",
+        participantMemberIds: ["m1"],
+        groupConfig: null,
+        groups: [],
+        groupGeneratedAt: null,
+        activityName: "2026-04-18 Mapo",
+        participationWeight: 0.5,
+      },
+    ]);
+
+    const snapshot = await getMemberParticipationHistorySnapshot("m1", "2026-04");
+
+    expect(snapshot.activities.map((activity) => activity.id)).toEqual([
+      "activity-2",
     ]);
   });
 

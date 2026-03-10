@@ -2,6 +2,11 @@
 
 import { create } from "zustand";
 import type { AppLocale } from "../i18n/config";
+import {
+  getCurrentStatsMonthInKst,
+  getParticipationScoreForPeriod,
+  type StatsPeriod,
+} from "../stats";
 import type {
   ArchiveFilter,
   Gender,
@@ -18,6 +23,7 @@ export type StatsState = {
   search: string;
   genderFilter: GenderFilter;
   archiveFilter: ArchiveFilter;
+  selectedPeriod: StatsPeriod;
   sortKey: StatsSortKey;
   sortDirection: SortDirection;
   hydrate: (stats: MemberParticipationStat[], locale?: AppLocale) => void;
@@ -26,6 +32,7 @@ export type StatsState = {
   setSearch: (search: string) => void;
   setGenderFilter: (genderFilter: GenderFilter) => void;
   setArchiveFilter: (archiveFilter: ArchiveFilter) => void;
+  setSelectedPeriod: (selectedPeriod: StatsPeriod) => void;
   setSortKey: (sortKey: StatsSortKey) => void;
   toggleSortDirection: () => void;
 };
@@ -36,19 +43,26 @@ export const useStatsStore = create<StatsState>((set) => ({
   search: "",
   genderFilter: "all",
   archiveFilter: "active",
+  selectedPeriod: getCurrentStatsMonthInKst(),
   sortKey: "participationScore",
   sortDirection: "desc",
-  hydrate: (stats, locale = "ko") => set({ stats, locale }),
+  hydrate: (stats, locale = "ko") =>
+    set((state) => ({
+      stats,
+      locale,
+      selectedPeriod: state.selectedPeriod,
+    })),
   setLocale: (locale) => set({ locale }),
   upsertMemberStat: (stat) =>
     set((state) => ({
       stats: [...state.stats.filter((current) => current.id !== stat.id), stat].sort(
         (left, right) => left.name.localeCompare(right.name, state.locale),
       ),
-  })),
+    })),
   setSearch: (search) => set({ search }),
   setGenderFilter: (genderFilter) => set({ genderFilter }),
   setArchiveFilter: (archiveFilter) => set({ archiveFilter }),
+  setSelectedPeriod: (selectedPeriod) => set({ selectedPeriod }),
   setSortKey: (sortKey) => set({ sortKey }),
   toggleSortDirection: () =>
     set((state) => ({
@@ -80,7 +94,11 @@ export function selectVisibleStats(state: StatsState) {
       return left.name.localeCompare(right.name, state.locale) * direction;
     }
 
-    return (left.participationScore - right.participationScore) * direction;
+    return (
+      (getParticipationScoreForPeriod(left, state.selectedPeriod) -
+        getParticipationScoreForPeriod(right, state.selectedPeriod)) *
+      direction
+    );
   });
 
   return filteredStats;

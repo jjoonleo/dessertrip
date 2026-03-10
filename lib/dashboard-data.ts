@@ -2,6 +2,7 @@ import { connectToDatabase } from "./mongodb";
 import { getActivity, listActivities } from "./services/activities";
 import { listMembers } from "./services/members";
 import { getMemberParticipationStats } from "./services/member-stats";
+import type { StatsMonthKey } from "./stats";
 
 export async function getOverviewSnapshot() {
   await connectToDatabase();
@@ -78,7 +79,10 @@ export async function getStatsSnapshot() {
   };
 }
 
-export async function getMemberParticipationHistorySnapshot(memberId: string) {
+export async function getMemberParticipationHistorySnapshot(
+  memberId: string,
+  selectedMonth?: StatsMonthKey,
+) {
   await connectToDatabase();
 
   const [members, activities] = await Promise.all([
@@ -92,13 +96,22 @@ export async function getMemberParticipationHistorySnapshot(memberId: string) {
     return {
       member: null,
       activities: [],
+      availableMonths: [],
     };
   }
 
+  const memberActivities = activities.filter((activity) =>
+    activity.participantMemberIds.includes(memberId),
+  );
+
   return {
     member,
-    activities: activities.filter((activity) =>
-      activity.participantMemberIds.includes(memberId),
+    activities: memberActivities.filter(
+      (activity) =>
+        (selectedMonth === undefined || activity.activityDate.slice(0, 7) === selectedMonth),
     ),
+    availableMonths: [...new Set(
+      memberActivities.map((activity) => activity.activityDate.slice(0, 7) as StatsMonthKey),
+    )].sort((left, right) => right.localeCompare(left)),
   };
 }
