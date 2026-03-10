@@ -100,6 +100,9 @@ describe("member participation history page", () => {
     expect(
       screen.getByRole("link", { name: "Back to stats" }).getAttribute("href"),
     ).toBe("/dashboard/stats?month=2026-03");
+    expect(
+      screen.getAllByRole("link", { name: "Open activity" })[0]?.getAttribute("href"),
+    ).toBe("/dashboard/activities/activity-1?memberId=member-1&month=2026-03");
   });
 
   it("shows a month-specific empty state when that month has no activities", () => {
@@ -135,6 +138,9 @@ describe("member participation history page", () => {
     expect(
       screen.getByRole("link", { name: "Back to stats" }).getAttribute("href"),
     ).toBe("/dashboard/stats");
+    expect(
+      screen.getAllByRole("link", { name: "Open activity" })[0]?.getAttribute("href"),
+    ).toBe("/dashboard/activities/activity-1?memberId=member-1");
   });
 
   it("lets the user change the period from the member history page", async () => {

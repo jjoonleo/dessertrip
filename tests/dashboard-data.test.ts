@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  getActivityDetailSnapshot,
   getActivityFormSnapshot,
   getMemberParticipationHistorySnapshot,
 } from "../lib/dashboard-data";
@@ -95,6 +96,99 @@ describe("dashboard data", () => {
 
     expect(mocks.listMembers).toHaveBeenCalledWith("all");
     expect(snapshot.members.map((member) => member.id)).toEqual(["m1", "m2"]);
+  });
+
+  it("returns the requested activity and only its referenced members for detail view", async () => {
+    mocks.listMembers.mockResolvedValue([
+      {
+        id: "m1",
+        name: "Ari",
+        gender: "female",
+        isManager: false,
+        archivedAt: null,
+      },
+      {
+        id: "m2",
+        name: "Ben",
+        gender: "male",
+        isManager: false,
+        archivedAt: null,
+      },
+    ]);
+    mocks.getActivity.mockResolvedValue({
+      id: "activity-1",
+      activityType: "regular",
+      activityDate: "2026-03-14",
+      area: "Gangnam",
+      participantMemberIds: ["m1"],
+      groupConfig: {
+        targetGroupCount: 1,
+      },
+      groups: [],
+      groupGeneratedAt: null,
+      activityName: "2026-03-14 Gangnam",
+      participationWeight: 1,
+    });
+
+    const snapshot = await getActivityDetailSnapshot("activity-1");
+
+    expect(snapshot.activity?.id).toBe("activity-1");
+    expect(snapshot.members.map((member) => member.id)).toEqual(["m1"]);
+  });
+
+  it("keeps archived referenced members in the activity detail snapshot", async () => {
+    mocks.listMembers.mockResolvedValue([
+      {
+        id: "m1",
+        name: "Ari",
+        gender: "female",
+        isManager: false,
+        archivedAt: null,
+      },
+      {
+        id: "m2",
+        name: "Ben",
+        gender: "male",
+        isManager: false,
+        archivedAt: "2026-03-09T00:00:00.000Z",
+      },
+    ]);
+    mocks.getActivity.mockResolvedValue({
+      id: "activity-1",
+      activityType: "regular",
+      activityDate: "2026-03-14",
+      area: "Gangnam",
+      participantMemberIds: ["m2"],
+      groupConfig: {
+        targetGroupCount: 1,
+      },
+      groups: [],
+      groupGeneratedAt: null,
+      activityName: "2026-03-14 Gangnam",
+      participationWeight: 1,
+    });
+
+    const snapshot = await getActivityDetailSnapshot("activity-1");
+
+    expect(snapshot.members.map((member) => member.id)).toEqual(["m2"]);
+  });
+
+  it("returns a null activity when the requested detail record does not exist", async () => {
+    mocks.listMembers.mockResolvedValue([
+      {
+        id: "m1",
+        name: "Ari",
+        gender: "female",
+        isManager: false,
+        archivedAt: null,
+      },
+    ]);
+    mocks.getActivity.mockResolvedValue(null);
+
+    const snapshot = await getActivityDetailSnapshot("missing");
+
+    expect(snapshot.activity).toBeNull();
+    expect(snapshot.members).toEqual([]);
   });
 
   it("returns the selected member and only their participated activities", async () => {
