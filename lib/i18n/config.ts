@@ -227,6 +227,22 @@ export const enMessages = {
   "stats.stats.visible.description": "Filtered and sorted result",
   "stats.stats.archived.title": "Archived members",
   "stats.stats.archived.description": "Historical roster retained",
+  "stats.stats.selectedMonth.title": "Selected month",
+  "stats.stats.selectedMonth.description":
+    "Currently scoped month for participation stats",
+  "stats.stats.monthParticipants.title": "Participants this month",
+  "stats.stats.monthParticipants.description":
+    "Members with a score above 0 in the selected month",
+  "stats.stats.monthTotal.title": "Total participation score",
+  "stats.stats.monthTotal.description":
+    "Weighted total across all members in the selected month",
+  "stats.filters.periodTitle": "Period",
+  "stats.filters.periodDescriptionAll":
+    "Switch to a month to inspect participation for that period.",
+  "stats.filters.periodDescriptionMonth":
+    "Showing weighted participation for {{month}}.",
+  "stats.filters.allTime": "All time",
+  "stats.filters.month": "Month",
   "stats.filters.searchPlaceholder": "Search stats",
   "stats.filters.sortByCount": "Sort by score",
   "stats.filters.sortByName": "Sort by name",
@@ -236,6 +252,8 @@ export const enMessages = {
   "stats.table.gender": "Gender",
   "stats.table.role": "Role",
   "stats.table.participations": "Participation score",
+  "stats.table.participationsAllTime": "Participation score (all time)",
+  "stats.table.participationsMonth": "Participation score ({{month}})",
   "stats.table.empty": "No members match the current filters.",
   "history.badge": "Stats",
   "history.title": "{{name}} activity history",
@@ -537,6 +555,21 @@ export const koMessages: MessageDictionary = {
   "stats.stats.visible.description": "필터와 정렬 결과",
   "stats.stats.archived.title": "보관된 멤버",
   "stats.stats.archived.description": "이력에 남아 있는 멤버",
+  "stats.stats.selectedMonth.title": "선택한 월",
+  "stats.stats.selectedMonth.description": "현재 참여 통계를 보는 기준 월",
+  "stats.stats.monthParticipants.title": "이번 달 참여 멤버",
+  "stats.stats.monthParticipants.description":
+    "선택한 월 참여 점수가 0보다 큰 멤버 수",
+  "stats.stats.monthTotal.title": "이번 달 총 참여 점수",
+  "stats.stats.monthTotal.description":
+    "선택한 월 전체 멤버 기준 가중 참여 점수 합계",
+  "stats.filters.periodTitle": "기간",
+  "stats.filters.periodDescriptionAll":
+    "월을 선택하면 해당 기간의 참여 통계를 볼 수 있습니다.",
+  "stats.filters.periodDescriptionMonth":
+    "{{month}} 기준 가중 참여 통계를 표시 중입니다.",
+  "stats.filters.allTime": "전체 기간",
+  "stats.filters.month": "월",
   "stats.filters.searchPlaceholder": "통계 검색",
   "stats.filters.sortByCount": "참여 점수순",
   "stats.filters.sortByName": "이름순",
@@ -546,6 +579,8 @@ export const koMessages: MessageDictionary = {
   "stats.table.gender": "성별",
   "stats.table.role": "역할",
   "stats.table.participations": "참여 점수",
+  "stats.table.participationsAllTime": "참여 점수 (전체 기간)",
+  "stats.table.participationsMonth": "참여 점수 ({{month}})",
   "stats.table.empty": "현재 필터와 일치하는 멤버 없음",
   "history.badge": "통계",
   "history.title": "{{name}} 활동 이력",

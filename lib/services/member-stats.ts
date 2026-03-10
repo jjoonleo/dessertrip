@@ -32,22 +32,48 @@ export async function getMemberParticipationStats(
     ActivityModel.aggregate<{
       _id: unknown;
       participationScore: number;
+      monthlyParticipationScores: Array<{
+        month: string;
+        participationScore: number;
+      }>;
     }>([
       {
         $unwind: "$participantMemberIds",
       },
       {
+        $project: {
+          participantMemberId: "$participantMemberIds",
+          activityMonth: {
+            $substrBytes: ["$activityDate", 0, 7],
+          },
+          participationIncrement: {
+            $cond: [
+              {
+                $eq: [{ $ifNull: ["$activityType", "regular"] }, "flash"],
+              },
+              0.5,
+              1,
+            ],
+          },
+        },
+      },
+      {
         $group: {
-          _id: "$participantMemberIds",
-          participationScore: {
-            $sum: {
-              $cond: [
-                {
-                  $eq: [{ $ifNull: ["$activityType", "regular"] }, "flash"],
-                },
-                0.5,
-                1,
-              ],
+          _id: {
+            memberId: "$participantMemberId",
+            month: "$activityMonth",
+          },
+          participationScore: { $sum: "$participationIncrement" },
+        },
+      },
+      {
+        $group: {
+          _id: "$_id.memberId",
+          participationScore: { $sum: "$participationScore" },
+          monthlyParticipationScores: {
+            $push: {
+              month: "$_id.month",
+              participationScore: "$participationScore",
             },
           },
         },
@@ -56,15 +82,31 @@ export async function getMemberParticipationStats(
   ]);
 
   const countByMemberId = new Map(
-    counts.map((count) => [String(count._id), count.participationScore]),
+    counts.map((count) => [
+      String(count._id),
+      {
+        participationScore: count.participationScore,
+        monthlyParticipationScores: Object.fromEntries(
+          count.monthlyParticipationScores.map((monthCount) => [
+            monthCount.month,
+            monthCount.participationScore,
+          ]),
+        ),
+      },
+    ]),
   );
 
-  return members.map((member) => ({
-    id: member._id.toString(),
-    name: member.name,
-    gender: member.gender,
-    isManager: member.isManager,
-    archivedAt: member.archivedAt ? member.archivedAt.toISOString() : null,
-    participationScore: countByMemberId.get(member._id.toString()) ?? 0,
-  }));
+  return members.map((member) => {
+    const memberCounts = countByMemberId.get(member._id.toString());
+
+    return {
+      id: member._id.toString(),
+      name: member.name,
+      gender: member.gender,
+      isManager: member.isManager,
+      archivedAt: member.archivedAt ? member.archivedAt.toISOString() : null,
+      participationScore: memberCounts?.participationScore ?? 0,
+      monthlyParticipationScores: memberCounts?.monthlyParticipationScores ?? {},
+    };
+  });
 }

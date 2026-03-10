@@ -55,4 +55,5 @@ export type AdminUser = {
 
 export type MemberParticipationStat = Member & {
   participationScore: number;
+  monthlyParticipationScores: Record<string, number>;
 };

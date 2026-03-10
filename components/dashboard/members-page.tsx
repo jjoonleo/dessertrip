@@ -89,6 +89,7 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
     upsertMemberStat({
       ...result.data,
       participationScore: 0,
+      monthlyParticipationScores: {},
     });
     closeCreateModal();
     router.refresh();

@@ -50,6 +50,7 @@ function makeStats(member: Member, participationScore: number): MemberParticipat
   return {
     ...member,
     participationScore,
+    monthlyParticipationScores: {},
   };
 }
 
@@ -87,6 +88,7 @@ describe("members page", () => {
       search: "",
       genderFilter: "all",
       archiveFilter: "active",
+      selectedPeriod: "2026-03",
       sortKey: "participationScore",
       sortDirection: "desc",
     });

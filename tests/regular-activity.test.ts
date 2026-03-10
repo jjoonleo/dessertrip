@@ -117,7 +117,7 @@ describe("Activity model", () => {
     });
   });
 
-  it("derives weighted participation stats from activities", async () => {
+  it("derives weighted participation stats from activities and months", async () => {
     const memberA = new MemberModel({
       _id: new Types.ObjectId(),
       name: "Ari",
@@ -142,9 +142,40 @@ describe("Activity model", () => {
     } as never);
 
     vi.spyOn(ActivityModel, "aggregate").mockResolvedValue([
-      { _id: memberA._id, participationScore: 1.5 },
-      { _id: memberB._id, participationScore: 1 },
-      { _id: memberC._id, participationScore: 0.5 },
+      {
+        _id: memberA._id,
+        participationScore: 1.5,
+        monthlyParticipationScores: [
+          {
+            month: "2026-02",
+            participationScore: 0.5,
+          },
+          {
+            month: "2026-03",
+            participationScore: 1,
+          },
+        ],
+      },
+      {
+        _id: memberB._id,
+        participationScore: 1,
+        monthlyParticipationScores: [
+          {
+            month: "2026-03",
+            participationScore: 1,
+          },
+        ],
+      },
+      {
+        _id: memberC._id,
+        participationScore: 0.5,
+        monthlyParticipationScores: [
+          {
+            month: "2026-02",
+            participationScore: 0.5,
+          },
+        ],
+      },
     ] as never);
 
     const stats = await getMemberParticipationStats();
@@ -153,14 +184,24 @@ describe("Activity model", () => {
       expect.objectContaining({
         id: memberA._id.toString(),
         participationScore: 1.5,
+        monthlyParticipationScores: {
+          "2026-02": 0.5,
+          "2026-03": 1,
+        },
       }),
       expect.objectContaining({
         id: memberB._id.toString(),
         participationScore: 1,
+        monthlyParticipationScores: {
+          "2026-03": 1,
+        },
       }),
       expect.objectContaining({
         id: memberC._id.toString(),
         participationScore: 0.5,
+        monthlyParticipationScores: {
+          "2026-02": 0.5,
+        },
       }),
     ]);
   });
