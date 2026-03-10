@@ -263,29 +263,6 @@ export function DashboardLayoutShell({
                 </button>
               </div>
             </div>
-
-            <div className="dashboard-shell__desktop-footer border-t border-base-300 p-4">
-              <div className="stats stats-vertical w-full bg-base-200 shadow-sm">
-                <div className="stat">
-                  <div className="stat-title">{t("dashboard.shell.signedIn")}</div>
-                  <div className="stat-value text-lg">{username}</div>
-                  <div className="stat-desc">
-                    {t("dashboard.shell.activeSessionOn", {
-                      page: t(currentItem.labelKey),
-                    })}
-                  </div>
-                </div>
-                <div className="stat">
-                  <div className="stat-title">{t("dashboard.shell.page")}</div>
-                  <div className="stat-value text-lg">
-                    {t(currentItem.labelKey)}
-                  </div>
-                  <div className="stat-desc">
-                    {t("dashboard.shell.navigationEnabled")}
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </aside>
       </div>

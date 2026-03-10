@@ -1,8 +1,8 @@
-import type { AdminUser, Member, RegularActivity } from "../types/domain";
+import { deriveActivityName, getActivityTypeConfig, resolveActivityType } from "../activity";
+import type { Activity, AdminUser, Member } from "../types/domain";
 import type { AdminUserDocument } from "../models/admin-user";
+import type { ActivityDocument } from "../models/activity";
 import type { MemberDocument } from "../models/member";
-import type { RegularActivityDocument } from "../models/regular-activity";
-import { deriveRegularActivityName } from "../regular-activity";
 
 function normalizeTargetGroupCount(
   value: unknown,
@@ -35,34 +35,47 @@ export function serializeAdminUser(adminUser: AdminUserDocument): AdminUser {
   };
 }
 
-export function serializeRegularActivity(
-  regularActivity: RegularActivityDocument,
-): RegularActivity {
+export function serializeActivity(activity: ActivityDocument): Activity {
+  const activityType = resolveActivityType(activity.activityType);
   const targetGroupCount = normalizeTargetGroupCount(
-    regularActivity.groupConfig?.targetGroupCount,
-    regularActivity.groups.length,
+    activity.groupConfig?.targetGroupCount,
+    activity.groups.length,
   );
-
-  return {
-    id: regularActivity._id.toString(),
-    activityDate: regularActivity.activityDate,
-    area: regularActivity.area,
-    participantMemberIds: regularActivity.participantMemberIds.map((memberId) =>
+  const baseActivity = {
+    id: activity._id.toString(),
+    activityType,
+    activityDate: activity.activityDate,
+    area: activity.area,
+    participantMemberIds: activity.participantMemberIds.map((memberId) =>
       memberId.toString(),
     ),
+    activityName: deriveActivityName(activity.activityDate, activity.area),
+    participationWeight: getActivityTypeConfig(activityType).participationWeight,
+  } as const;
+
+  if (activityType === "flash") {
+    return {
+      ...baseActivity,
+      activityType,
+      groupConfig: null,
+      groups: [],
+      groupGeneratedAt: null,
+    };
+  }
+
+  return {
+    ...baseActivity,
+    activityType,
     groupConfig: {
       targetGroupCount,
     },
-    groups: regularActivity.groups.map((group) => ({
+    groups: activity.groups.map((group) => ({
       groupNumber: group.groupNumber,
       memberIds: group.memberIds.map((memberId) => memberId.toString()),
     })),
-    groupGeneratedAt: regularActivity.groupGeneratedAt
-      ? regularActivity.groupGeneratedAt.toISOString()
+    groupGeneratedAt: activity.groupGeneratedAt
+      ? activity.groupGeneratedAt.toISOString()
       : null,
-    activityName: deriveRegularActivityName(
-      regularActivity.activityDate,
-      regularActivity.area,
-    ),
+    participationWeight: getActivityTypeConfig(activityType).participationWeight,
   };
 }

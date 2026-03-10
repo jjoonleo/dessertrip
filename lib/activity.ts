@@ -1,4 +1,17 @@
+import type { Activity, ActivityType, FlashActivity, RegularActivity } from "./types/domain";
+
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+export const activityTypeConfig = {
+  regular: {
+    participationWeight: 1,
+    requiresGroups: true,
+  },
+  flash: {
+    participationWeight: 0.5,
+    requiresGroups: false,
+  },
+} as const;
 
 function parseDateOnly(value: string) {
   if (!DATE_ONLY_PATTERN.test(value)) {
@@ -37,6 +50,22 @@ export function isSaturdayInKst(value: string) {
   return parsed.date.getUTCDay() === 6;
 }
 
-export function deriveRegularActivityName(activityDate: string, area: string) {
+export function deriveActivityName(activityDate: string, area: string) {
   return `${activityDate} ${area}`.trim();
+}
+
+export function resolveActivityType(value: unknown): ActivityType {
+  return value === "flash" ? "flash" : "regular";
+}
+
+export function getActivityTypeConfig(activityType: ActivityType) {
+  return activityTypeConfig[activityType];
+}
+
+export function isRegularActivity(activity: Activity): activity is RegularActivity {
+  return activity.activityType === "regular";
+}
+
+export function isFlashActivity(activity: Activity): activity is FlashActivity {
+  return activity.activityType === "flash";
 }

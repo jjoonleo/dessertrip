@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import type { Member, RegularActivity } from "../../lib/types/domain";
+import { isRegularActivity } from "../../lib/activity";
+import { formatParticipationScore } from "../../lib/participation";
+import type { Activity, Member } from "../../lib/types/domain";
 import { useI18n } from "../i18n/i18n-provider";
 import { SectionHeader } from "./section-header";
 
 type MemberParticipationHistoryPageProps = {
   member: Member;
-  activities: RegularActivity[];
+  activities: Activity[];
 };
 
 export function MemberParticipationHistoryPage({
@@ -15,6 +17,10 @@ export function MemberParticipationHistoryPage({
   activities,
 }: MemberParticipationHistoryPageProps) {
   const { t } = useI18n();
+  const participationScore = activities.reduce(
+    (score, activity) => score + activity.participationWeight,
+    0,
+  );
 
   return (
     <div className="space-y-6">
@@ -31,11 +37,13 @@ export function MemberParticipationHistoryPage({
       <div className="stats stats-vertical w-full border border-base-300 bg-base-100 shadow lg:stats-horizontal">
         <div className="stat">
           <div className="stat-title">
-            {t("history.stats.activities.title")}
+            {t("history.stats.score.title")}
           </div>
-          <div className="stat-value text-primary">{activities.length}</div>
+          <div className="stat-value text-primary">
+            {formatParticipationScore(participationScore)}
+          </div>
           <div className="stat-desc">
-            {t("history.stats.activities.description")}
+            {t("history.stats.score.description")}
           </div>
         </div>
         <div className="stat">
@@ -106,17 +114,24 @@ export function MemberParticipationHistoryPage({
                         </div>
 
                         <div className="flex flex-wrap gap-2">
+                          <span className="badge badge-accent badge-outline">
+                            {activity.activityType === "flash"
+                              ? t("common.activityType.flash")
+                              : t("common.activityType.regular")}
+                          </span>
                           <span className="badge badge-primary badge-outline">
                             {t("activities.badge.participants", {
                               count: activity.participantMemberIds.length,
                             })}
                           </span>
-                          <span className="badge badge-secondary badge-outline">
-                            {t("activities.badge.groups", {
-                              count: activity.groups.length,
-                            })}
-                          </span>
-                          {memberGroup ? (
+                          {isRegularActivity(activity) ? (
+                            <span className="badge badge-secondary badge-outline">
+                              {t("activities.badge.groups", {
+                                count: activity.groups.length,
+                              })}
+                            </span>
+                          ) : null}
+                          {isRegularActivity(activity) && memberGroup ? (
                             <span className="badge badge-accent badge-outline">
                               {t("history.badge.group", {
                                 number: memberGroup.groupNumber,

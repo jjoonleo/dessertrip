@@ -5,7 +5,7 @@ import { createJSONStorage, persist, type StateStorage } from "zustand/middlewar
 import { moveMemberBetweenGroups, type MoveGroupMemberInput } from "../activity-group-dnd";
 import { isTranslationKey, type TranslationKey } from "../i18n/config";
 import { generateBalancedGroups } from "../services/grouping";
-import type { ActivityGroup, Member, RegularActivity } from "../types/domain";
+import type { Activity, ActivityGroup, ActivityType, Member } from "../types/domain";
 
 const noopStorage: StateStorage = {
   getItem: () => null,
@@ -47,6 +47,7 @@ function clearGeneratedGroupsState() {
 
 export type ActivityBuilderState = {
   editingActivityId: string | null;
+  activityType: ActivityType;
   activityDate: string;
   area: string;
   participantMemberIds: string[];
@@ -59,7 +60,8 @@ export type ActivityBuilderState = {
   lastGeneratedAt: string | null;
   warnings: TranslationKey[];
   errors: TranslationKey[];
-  hydrateFromActivity: (activity: RegularActivity) => void;
+  hydrateFromActivity: (activity: Activity) => void;
+  setActivityType: (activityType: ActivityType) => void;
   setActivityDate: (activityDate: string) => void;
   setArea: (area: string) => void;
   openMemberPicker: () => void;
@@ -80,6 +82,7 @@ export type ActivityBuilderState = {
 
 const defaultActivityBuilderState = {
   editingActivityId: null,
+  activityType: "regular" as const,
   activityDate: "",
   area: "",
   participantMemberIds: [] as string[],
@@ -101,6 +104,7 @@ export const useActivityBuilderStore = create<ActivityBuilderState>()(
       hydrateFromActivity: (activity) =>
         set({
           editingActivityId: activity.id,
+          activityType: activity.activityType,
           activityDate: activity.activityDate,
           area: activity.area,
           participantMemberIds: activity.participantMemberIds,
@@ -116,6 +120,20 @@ export const useActivityBuilderStore = create<ActivityBuilderState>()(
           lastGeneratedAt: activity.groupGeneratedAt,
           warnings: [],
           errors: [],
+        }),
+      setActivityType: (activityType) =>
+        set((state) => {
+          if (state.activityType === activityType) {
+            return {};
+          }
+
+          return {
+            activityType,
+            dirty: true,
+            warnings: [],
+            errors: [],
+            ...(activityType === "flash" ? clearGeneratedGroupsState() : {}),
+          };
         }),
       setActivityDate: (activityDate) =>
         set({
@@ -176,6 +194,12 @@ export const useActivityBuilderStore = create<ActivityBuilderState>()(
         }),
       syncWarnings: (members) => {
         const state = get();
+
+        if (state.activityType === "flash") {
+          set({ warnings: [] });
+          return;
+        }
+
         const targetGroupCount = normalizeTargetGroupCount(
           state.targetGroupCount,
           state.generatedGroups.length,
@@ -198,6 +222,14 @@ export const useActivityBuilderStore = create<ActivityBuilderState>()(
       },
       generateGroups: (members) => {
         const state = get();
+
+        if (state.activityType === "flash") {
+          set({
+            errors: [],
+          });
+          return;
+        }
+
         const targetGroupCount = normalizeTargetGroupCount(
           state.targetGroupCount,
           state.generatedGroups.length,
@@ -290,6 +322,7 @@ export const useActivityBuilderStore = create<ActivityBuilderState>()(
       storage: persistStorage,
       partialize: (state) => ({
         editingActivityId: state.editingActivityId,
+        activityType: state.activityType,
         activityDate: state.activityDate,
         area: state.area,
         participantMemberIds: state.participantMemberIds,

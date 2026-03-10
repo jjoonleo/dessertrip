@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { useShallow } from "zustand/react/shallow";
+import { formatParticipationScore } from "../../lib/participation";
 import { useI18n } from "../i18n/i18n-provider";
 import { useStatsStore, selectVisibleStats } from "../../lib/stores/stats-store";
 import type { Member, MemberParticipationStat } from "../../lib/types/domain";
@@ -107,12 +108,12 @@ export function StatsPage({ initialStats }: StatsPageProps) {
               className="select select-bordered w-full"
               onChange={(event) =>
                 setStatSortKey(
-                  event.target.value as "name" | "participationCount",
+                  event.target.value as "name" | "participationScore",
                 )
               }
               value={statSortKey}
             >
-              <option value="participationCount">
+              <option value="participationScore">
                 {t("stats.filters.sortByCount")}
               </option>
               <option value="name">{t("stats.filters.sortByName")}</option>
@@ -180,7 +181,7 @@ export function StatsPage({ initialStats }: StatsPageProps) {
                         </div>
                       </td>
                       <td className="text-right font-semibold">
-                        {stat.participationCount}
+                        {formatParticipationScore(stat.participationScore)}
                       </td>
                     </tr>
                   ))

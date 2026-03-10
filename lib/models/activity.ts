@@ -1,15 +1,16 @@
-import mongoose, { Schema, Types, type InferSchemaType, type HydratedDocument } from "mongoose";
-import { isSaturdayInKst, isValidDateOnlyString } from "../regular-activity";
+import mongoose, {
+  Schema,
+  Types,
+  type HydratedDocument,
+  type InferSchemaType,
+} from "mongoose";
+import { isSaturdayInKst, isValidDateOnlyString, resolveActivityType } from "../activity";
 
 function toObjectIdStrings(values: Types.ObjectId[]) {
   return values.map((value) => value.toString());
 }
 
-function hasUniqueObjectIds(values: Types.ObjectId[]) {
-  return new Set(toObjectIdStrings(values)).size === values.length;
-}
-
-const regularActivityGroupSchema = new Schema(
+const activityGroupSchema = new Schema(
   {
     groupNumber: {
       type: Number,
@@ -53,21 +54,22 @@ const groupConfigSchema = new Schema(
   },
 );
 
-const regularActivitySchema = new Schema(
+const activitySchema = new Schema(
   {
+    activityType: {
+      type: String,
+      enum: ["regular", "flash"],
+      default: "regular",
+      required: [true, "errors.validation.activity.typeRequired"],
+    },
     activityDate: {
       type: String,
       required: [true, "errors.validation.activity.dateFormat"],
-      validate: [
-        {
-          validator: isValidDateOnlyString,
-          message: "errors.validation.activity.dateFormat",
-        },
-        {
-          validator: isSaturdayInKst,
-          message: "errors.validation.activity.saturdayRequired",
-        },
-      ],
+      trim: true,
+      validate: {
+        validator: isValidDateOnlyString,
+        message: "errors.validation.activity.dateFormat",
+      },
     },
     area: {
       type: String,
@@ -86,10 +88,10 @@ const regularActivitySchema = new Schema(
     },
     groupConfig: {
       type: groupConfigSchema,
-      required: true,
+      default: null,
     },
     groups: {
-      type: [regularActivityGroupSchema],
+      type: [activityGroupSchema],
       default: [],
     },
     groupGeneratedAt: {
@@ -103,12 +105,19 @@ const regularActivitySchema = new Schema(
   },
 );
 
-regularActivitySchema.index(
+activitySchema.index(
   { activityDate: 1 },
-  { unique: true, name: "uniq_regular_activity_date" },
+  {
+    unique: true,
+    partialFilterExpression: {
+      activityType: "regular",
+    },
+    name: "uniq_regular_activity_date",
+  },
 );
 
-regularActivitySchema.pre("validate", function validateRegularActivity() {
+activitySchema.pre("validate", function validateActivity() {
+  const activityType = resolveActivityType(this.activityType);
   const participantIds = toObjectIdStrings(this.participantMemberIds);
 
   if (new Set(participantIds).size !== participantIds.length) {
@@ -116,6 +125,40 @@ regularActivitySchema.pre("validate", function validateRegularActivity() {
       "participantMemberIds",
       "errors.validation.activity.participantsUnique",
     );
+  }
+
+  if (activityType === "flash") {
+    if (this.groupConfig !== null && this.groupConfig !== undefined) {
+      this.invalidate(
+        "groupConfig",
+        "errors.validation.activity.flashGroupConfigEmpty",
+      );
+    }
+
+    if (this.groups.length > 0) {
+      this.invalidate("groups", "errors.validation.activity.flashGroupsEmpty");
+    }
+
+    if (this.groupGeneratedAt) {
+      this.invalidate(
+        "groupGeneratedAt",
+        "errors.validation.activity.flashGroupGeneratedAtEmpty",
+      );
+    }
+
+    return;
+  }
+
+  if (!isSaturdayInKst(this.activityDate)) {
+    this.invalidate("activityDate", "errors.validation.activity.saturdayRequired");
+  }
+
+  if (!this.groupConfig) {
+    this.invalidate("groupConfig", "errors.validation.activity.targetGroupRequired");
+  }
+
+  if (this.groups.length === 0) {
+    this.invalidate("groups", "errors.validation.activity.regularGroupsRequired");
   }
 
   const participantIdSet = new Set(participantIds);
@@ -164,49 +207,29 @@ regularActivitySchema.pre("validate", function validateRegularActivity() {
     this.invalidate("groups", "errors.validation.activity.memberInMultipleGroups");
   }
 
-  if (this.groups.length > 0) {
-    if (groupedMemberIds.length !== participantIds.length) {
-      this.invalidate(
-        "groups",
-        "errors.validation.activity.groupsMustCoverParticipants",
-      );
-    }
-
-    const unassignedMemberIds = participantIds.filter(
-      (memberId) => !groupedMemberIds.includes(memberId),
-    );
-
-    if (unassignedMemberIds.length > 0) {
-      this.invalidate(
-        "groups",
-        "errors.validation.activity.groupsMustCoverParticipants",
-      );
-    }
-
-    if (!this.groupGeneratedAt) {
-      this.invalidate(
-        "groupGeneratedAt",
-        "errors.validation.activity.groupGeneratedAtRequired",
-      );
-    }
+  if (groupedMemberIds.length !== participantIds.length) {
+    this.invalidate("groups", "errors.validation.activity.groupsMustCoverParticipants");
   }
 
-  if (this.groups.length === 0 && this.groupGeneratedAt) {
+  const unassignedMemberIds = participantIds.filter(
+    (memberId) => !groupedMemberIds.includes(memberId),
+  );
+
+  if (unassignedMemberIds.length > 0) {
+    this.invalidate("groups", "errors.validation.activity.groupsMustCoverParticipants");
+  }
+
+  if (!this.groupGeneratedAt) {
     this.invalidate(
       "groupGeneratedAt",
-      "errors.validation.activity.groupGeneratedAtEmptyOnly",
+      "errors.validation.activity.groupGeneratedAtRequired",
     );
   }
 });
 
-export type RegularActivityModelShape = InferSchemaType<typeof regularActivitySchema>;
-export type RegularActivityDocument = HydratedDocument<RegularActivityModelShape>;
+export type ActivityModelShape = InferSchemaType<typeof activitySchema>;
+export type ActivityDocument = HydratedDocument<ActivityModelShape>;
 
-export const RegularActivityModel =
-  (mongoose.models.RegularActivity as
-    | mongoose.Model<RegularActivityModelShape>
-    | undefined) ??
-  mongoose.model<RegularActivityModelShape>(
-    "RegularActivity",
-    regularActivitySchema,
-  );
+export const ActivityModel =
+  (mongoose.models.Activity as mongoose.Model<ActivityModelShape> | undefined) ??
+  mongoose.model<ActivityModelShape>("Activity", activitySchema);

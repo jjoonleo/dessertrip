@@ -16,19 +16,19 @@ import {
   updateMember,
 } from "../lib/services/members";
 import {
-  createRegularActivity,
-  deleteRegularActivity,
-  updateRegularActivity,
-} from "../lib/services/regular-activities";
+  createActivity,
+  deleteActivity,
+  updateActivity,
+} from "../lib/services/activities";
 import type {
+  CreateActivityInput,
   CreateMemberInput,
-  CreateRegularActivityInput,
+  UpdateActivityInput,
   UpdateMemberInput,
-  UpdateRegularActivityInput,
 } from "../lib/validation";
 
 type MemberRecord = Awaited<ReturnType<typeof createMember>>;
-type RegularActivityRecord = Awaited<ReturnType<typeof createRegularActivity>>;
+type ActivityRecord = Awaited<ReturnType<typeof createActivity>>;
 type MemberStatsRecord = Awaited<ReturnType<typeof getMemberParticipationStats>>;
 
 type ActionSuccess<T> = {
@@ -234,17 +234,17 @@ export async function restoreMemberAction(
   }
 }
 
-export async function createRegularActivityAction(
-  input: CreateRegularActivityInput,
+export async function createActivityAction(
+  input: CreateActivityInput,
 ): ActionResult<{
-  activity: RegularActivityRecord;
+  activity: ActivityRecord;
   stats: MemberStatsRecord;
 }> {
   const locale = await resolveRequestLocale();
 
   try {
     await connectToDatabase();
-    const activity = await createRegularActivity(input);
+    const activity = await createActivity(input);
     const stats = await getMemberParticipationStats("all");
     revalidateDashboardTree();
 
@@ -263,18 +263,18 @@ export async function createRegularActivityAction(
   }
 }
 
-export async function updateRegularActivityAction(
+export async function updateActivityAction(
   id: string,
-  input: UpdateRegularActivityInput,
+  input: UpdateActivityInput,
 ): ActionResult<{
-  activity: RegularActivityRecord;
+  activity: ActivityRecord;
   stats: MemberStatsRecord;
 }> {
   const locale = await resolveRequestLocale();
 
   try {
     await connectToDatabase();
-    const activity = await updateRegularActivity(id, input);
+    const activity = await updateActivity(id, input);
 
     if (!activity) {
       return {
@@ -301,7 +301,7 @@ export async function updateRegularActivityAction(
   }
 }
 
-export async function deleteRegularActivityAction(
+export async function deleteActivityAction(
   id: string,
 ): ActionResult<{
   id: string;
@@ -311,7 +311,7 @@ export async function deleteRegularActivityAction(
 
   try {
     await connectToDatabase();
-    const deleted = await deleteRegularActivity(id);
+    const deleted = await deleteActivity(id);
 
     if (!deleted) {
       return {

@@ -6,7 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { ActivitiesPage } from "../components/dashboard/activities-page";
 import { useActivitiesStore } from "../lib/stores/activities-store";
 import { useStatsStore } from "../lib/stores/stats-store";
-import type { Member, RegularActivity } from "../lib/types/domain";
+import type { Activity, Member } from "../lib/types/domain";
 import { renderWithLocale } from "./test-utils";
 
 const pushMock = vi.fn();
@@ -20,7 +20,7 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("../app/actions", () => ({
-  deleteRegularActivityAction: vi.fn(),
+  deleteActivityAction: vi.fn(),
 }));
 
 const members: Member[] = [
@@ -28,9 +28,10 @@ const members: Member[] = [
   { id: "m2", name: "Ben", gender: "male", isManager: true, archivedAt: null },
 ];
 
-const activities: RegularActivity[] = [
+const activities: Activity[] = [
   {
     id: "activity-1",
+    activityType: "regular",
     activityDate: "2026-03-14",
     area: "Gangnam",
     participantMemberIds: ["m1", "m2"],
@@ -45,6 +46,7 @@ const activities: RegularActivity[] = [
     ],
     groupGeneratedAt: "2026-03-10T10:00:00.000Z",
     activityName: "2026-03-14 Gangnam",
+    participationWeight: 1,
   },
 ];
 
@@ -68,7 +70,7 @@ describe("activities page", () => {
       search: "",
       genderFilter: "all",
       archiveFilter: "active",
-      sortKey: "participationCount",
+      sortKey: "participationScore",
       sortDirection: "desc",
     });
   });

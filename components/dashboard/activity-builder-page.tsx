@@ -28,9 +28,11 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useRouter } from "next/navigation";
 import {
-  createRegularActivityAction,
-  updateRegularActivityAction,
+  createActivityAction,
+  updateActivityAction,
 } from "../../app/actions";
+import { getActivityTypeConfig } from "../../lib/activity";
+import { formatParticipationScore } from "../../lib/participation";
 import { useI18n } from "../i18n/i18n-provider";
 import {
   activityGroupsEqual,
@@ -46,12 +48,13 @@ import { useActivitiesStore } from "../../lib/stores/activities-store";
 import { useActivityBuilderStore } from "../../lib/stores/activity-builder-store";
 import { useMembersStore } from "../../lib/stores/members-store";
 import { useStatsStore } from "../../lib/stores/stats-store";
-import type { ActivityGroup, Member, RegularActivity } from "../../lib/types/domain";
+import type { Activity, ActivityGroup, Member } from "../../lib/types/domain";
+import { FormField } from "../ui/form-field";
 import { SectionHeader } from "./section-header";
 
 type ActivityBuilderPageProps = {
   initialMembers: Member[];
-  editingActivity: RegularActivity | null;
+  editingActivity: Activity | null;
 };
 
 const mobileTouchActivationConstraint = {
@@ -333,6 +336,7 @@ export function ActivityBuilderPage({
   const setActivityError = useActivitiesStore((state) => state.setError);
 
   const activityDate = useActivityBuilderStore((state) => state.activityDate);
+  const activityType = useActivityBuilderStore((state) => state.activityType);
   const area = useActivityBuilderStore((state) => state.area);
   const participantMemberIds = useActivityBuilderStore(
     (state) => state.participantMemberIds,
@@ -355,6 +359,7 @@ export function ActivityBuilderPage({
   const hydrateFromActivity = useActivityBuilderStore(
     (state) => state.hydrateFromActivity,
   );
+  const setActivityType = useActivityBuilderStore((state) => state.setActivityType);
   const setActivityDate = useActivityBuilderStore((state) => state.setActivityDate);
   const setArea = useActivityBuilderStore((state) => state.setArea);
   const openMemberPicker = useActivityBuilderStore((state) => state.openMemberPicker);
@@ -406,7 +411,7 @@ export function ActivityBuilderPage({
 
   useEffect(() => {
     syncWarnings(members);
-  }, [members, participantMemberIds, syncWarnings, targetGroupCount]);
+  }, [activityType, members, participantMemberIds, syncWarnings, targetGroupCount]);
 
   useEffect(() => {
     if (!activeDragMemberId || typeof document === "undefined") {
@@ -454,6 +459,8 @@ export function ActivityBuilderPage({
   const activeDragMember =
     activeDragMemberId ? membersById.get(activeDragMemberId) ?? null : null;
   const displayedGroups = previewGroups ?? generatedGroups;
+  const isRegularMode = activityType === "regular";
+  const participationWeight = getActivityTypeConfig(activityType).participationWeight;
   const safeTargetGroupCount =
     Number.isInteger(targetGroupCount) && targetGroupCount >= 1
       ? targetGroupCount
@@ -474,12 +481,12 @@ export function ActivityBuilderPage({
       return;
     }
 
-    if (safeTargetGroupCount > participantMemberIds.length) {
+    if (isRegularMode && safeTargetGroupCount > participantMemberIds.length) {
       setBuilderErrors(["builder.validation.targetTooLarge"]);
       return;
     }
 
-    if (generatedGroups.length === 0) {
+    if (isRegularMode && generatedGroups.length === 0) {
       setBuilderErrors(["builder.validation.generateBeforeSave"]);
       return;
     }
@@ -487,19 +494,23 @@ export function ActivityBuilderPage({
     setActivityPending(true);
 
     const payload = {
+      activityType,
       activityDate,
       area: area.trim(),
       participantMemberIds,
-      groupConfig: {
-        targetGroupCount: safeTargetGroupCount,
-      },
-      groups: generatedGroups,
-      groupGeneratedAt: lastGeneratedAt ? new Date(lastGeneratedAt) : null,
+      groupConfig: isRegularMode
+        ? {
+            targetGroupCount: safeTargetGroupCount,
+          }
+        : null,
+      groups: isRegularMode ? generatedGroups : [],
+      groupGeneratedAt:
+        isRegularMode && lastGeneratedAt ? new Date(lastGeneratedAt) : null,
     };
     const wasEditing = editingActivityId !== null;
     const result = wasEditing
-      ? await updateRegularActivityAction(editingActivityId, payload)
-      : await createRegularActivityAction(payload);
+      ? await updateActivityAction(editingActivityId, payload)
+      : await createActivityAction(payload);
 
     if (!result.ok) {
       setActivityPending(false);
@@ -647,25 +658,37 @@ export function ActivityBuilderPage({
           </div>
         </div>
         <div className="stat">
-          <div className="stat-title">{t("builder.stats.targetGroups.title")}</div>
-          <div className="stat-value text-secondary">{targetGroupCount}</div>
+          <div className="stat-title">{t("builder.stats.activityType.title")}</div>
+          <div className="stat-value text-secondary">
+            {activityType === "flash"
+              ? t("common.activityType.flash")
+              : t("common.activityType.regular")}
+          </div>
           <div className="stat-desc">
-            {t("builder.stats.targetGroups.description")}
+            {t("builder.stats.activityType.description")}
           </div>
         </div>
         <div className="stat">
           <div className="stat-title">
-            {t("builder.stats.generatedGroups.title")}
+            {isRegularMode
+              ? t("builder.stats.generatedGroups.title")
+              : t("builder.stats.participationWeight.title")}
           </div>
-          <div className="stat-value text-accent">{generatedGroups.length}</div>
+          <div className="stat-value text-accent">
+            {isRegularMode
+              ? generatedGroups.length
+              : formatParticipationScore(participationWeight)}
+          </div>
           <div className="stat-desc">
-            {archivedIncludedCount > 0
-              ? t("builder.stats.generatedGroups.archived", {
-                  count: archivedIncludedCount,
-                })
-              : editingActivity
-                ? t("builder.stats.generatedGroups.editing")
-                : t("builder.stats.generatedGroups.new")}
+            {isRegularMode
+              ? archivedIncludedCount > 0
+                ? t("builder.stats.generatedGroups.archived", {
+                    count: archivedIncludedCount,
+                  })
+                : editingActivity
+                  ? t("builder.stats.generatedGroups.editing")
+                  : t("builder.stats.generatedGroups.new")
+              : t("builder.stats.participationWeight.description")}
           </div>
         </div>
       </div>
@@ -689,30 +712,44 @@ export function ActivityBuilderPage({
           </div>
 
           <form className="space-y-5" id="activity-form" onSubmit={handleSaveActivity}>
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="form-control gap-2">
-                <span className="label-text font-medium">
-                  {t("builder.field.date")}
-                </span>
+            <div className="grid gap-4 md:grid-cols-3">
+              <FormField label={t("builder.field.type")}>
+                <select
+                  className="select select-bordered w-full"
+                  disabled={editingActivity !== null}
+                  onChange={(event) =>
+                    setActivityType(event.target.value as "regular" | "flash")
+                  }
+                  value={activityType}
+                >
+                  <option value="regular">{t("common.activityType.regular")}</option>
+                  <option value="flash">{t("common.activityType.flash")}</option>
+                </select>
+              </FormField>
+
+              <FormField
+                label={
+                  activityType === "regular"
+                    ? t("builder.field.dateRegular")
+                    : t("builder.field.dateFlash")
+                }
+              >
                 <input
                   className="input input-bordered w-full"
                   onChange={(event) => setActivityDate(event.target.value)}
                   type="date"
                   value={activityDate}
                 />
-              </label>
+              </FormField>
 
-              <label className="form-control gap-2">
-                <span className="label-text font-medium">
-                  {t("builder.field.location")}
-                </span>
+              <FormField label={t("builder.field.location")}>
                 <input
                   className="input input-bordered w-full"
                   onChange={(event) => setArea(event.target.value)}
                   placeholder={t("builder.field.locationPlaceholder")}
                   value={area}
                 />
-              </label>
+              </FormField>
             </div>
 
             <div className="card border border-base-300 bg-base-200 shadow-sm">
@@ -755,48 +792,51 @@ export function ActivityBuilderPage({
               </div>
             </div>
 
-            <div className="card border border-base-300 bg-base-200 shadow-sm">
-              <div className="card-body gap-4 p-4">
-                <div className="grid gap-4 md:grid-cols-[minmax(0,260px)_1fr]">
-                  <label className="form-control gap-2">
-                    <span className="label-text font-medium">
-                      {t("builder.grouping.field")}
-                    </span>
-                    <input
-                      className="input input-bordered w-full"
-                      disabled={participantMemberIds.length === 0}
-                      min={1}
-                      onChange={(event) =>
-                        setTargetGroupCount(Math.max(1, Number(event.target.value) || 1))
-                      }
-                      type="number"
-                      value={safeTargetGroupCount}
-                    />
-                  </label>
+            {isRegularMode ? (
+              <div className="card border border-base-300 bg-base-200 shadow-sm">
+                <div className="card-body gap-4 p-4">
+                  <div className="grid gap-4 md:grid-cols-[minmax(0,260px)_1fr]">
+                    <FormField label={t("builder.grouping.field")}>
+                      <input
+                        className="input input-bordered w-full"
+                        disabled={participantMemberIds.length === 0}
+                        min={1}
+                        onChange={(event) =>
+                          setTargetGroupCount(Math.max(1, Number(event.target.value) || 1))
+                        }
+                        type="number"
+                        value={safeTargetGroupCount}
+                      />
+                    </FormField>
 
-                  <div className="flex items-end">
-                    <button
-                      className="btn btn-primary w-full md:w-auto"
-                      disabled={participantMemberIds.length === 0}
-                      onClick={() => generateGroups(members)}
-                      type="button"
-                    >
-                      {t("builder.grouping.generate")}
-                    </button>
-                  </div>
-                </div>
-
-                {builderWarnings.length > 0 ? (
-                  <div className="alert alert-warning">
-                    <div className="space-y-1">
-                      {builderWarnings.map((warning) => (
-                        <p key={warning}>{t(warning)}</p>
-                      ))}
+                    <div className="flex items-end">
+                      <button
+                        className="btn btn-primary w-full md:w-auto"
+                        disabled={participantMemberIds.length === 0}
+                        onClick={() => generateGroups(members)}
+                        type="button"
+                      >
+                        {t("builder.grouping.generate")}
+                      </button>
                     </div>
                   </div>
-                ) : null}
+
+                  {builderWarnings.length > 0 ? (
+                    <div className="alert alert-warning">
+                      <div className="space-y-1">
+                        {builderWarnings.map((warning) => (
+                          <p key={warning}>{t(warning)}</p>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="alert alert-info">
+                <span>{t("builder.flash.notice")}</span>
+              </div>
+            )}
 
             {builderErrors.length > 0 ? (
               <div className="alert alert-error">
@@ -818,75 +858,77 @@ export function ActivityBuilderPage({
         </div>
       </section>
 
-      <section className="card border border-base-300 bg-base-100 shadow-sm">
-        <div className="card-body gap-5">
-          <div className="space-y-1">
-            <h3 className="text-lg font-semibold">{t("builder.adjust.title")}</h3>
-            <p className="text-sm text-base-content/70">
-              {t("builder.adjust.description")}
-            </p>
-            <p className="text-sm text-base-content/60">
-              {t("builder.adjust.mobileHint")}
-            </p>
-          </div>
-
-          {generatedGroups.length === 0 ? (
-            <div className="alert">
-              <span>{t("builder.adjust.empty")}</span>
+      {isRegularMode ? (
+        <section className="card border border-base-300 bg-base-100 shadow-sm">
+          <div className="card-body gap-5">
+            <div className="space-y-1">
+              <h3 className="text-lg font-semibold">{t("builder.adjust.title")}</h3>
+              <p className="text-sm text-base-content/70">
+                {t("builder.adjust.description")}
+              </p>
+              <p className="text-sm text-base-content/60">
+                {t("builder.adjust.mobileHint")}
+              </p>
             </div>
-          ) : (
-            <DndContext
-              autoScroll={mobileEdgeAutoScrollOptions}
-              collisionDetection={activityGroupCollisionDetection}
-              onDragCancel={handleDragCancel}
-              onDragEnd={handleDragEnd}
-              onDragOver={handleDragOver}
-              onDragStart={handleDragStart}
-              sensors={sensors}
-            >
-              <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                {displayedGroups.map((group) => (
-                  <DroppableGroupColumn
-                    activeDragMemberId={activeDragMemberId}
-                    archivedLabel={t("common.status.archived")}
-                    dropHereLabel={t("builder.group.dropHere")}
-                    femaleLabel={t("common.gender.female")}
-                    key={group.groupNumber}
-                    group={group}
-                    groupMembersCountLabel={(count) =>
-                      t("builder.group.membersCount", { count })
-                    }
-                    groupTitleLabel={(groupNumber) =>
-                      t("builder.group.title", { number: groupNumber })
-                    }
-                    managerLabel={t("common.role.manager")}
-                    maleLabel={t("common.gender.male")}
-                    membersById={membersById}
-                    unknownGenderLabel={t("builder.member.unknownGender")}
-                    unknownMemberLabel={t("builder.member.unknown")}
-                  />
-                ))}
+
+            {generatedGroups.length === 0 ? (
+              <div className="alert">
+                <span>{t("builder.adjust.empty")}</span>
               </div>
-              <DragOverlay>
-                {activeDragMember ? (
-                  <div className="w-[18rem] max-w-[80vw] rotate-1">
-                    <GroupMemberCard
+            ) : (
+              <DndContext
+                autoScroll={mobileEdgeAutoScrollOptions}
+                collisionDetection={activityGroupCollisionDetection}
+                onDragCancel={handleDragCancel}
+                onDragEnd={handleDragEnd}
+                onDragOver={handleDragOver}
+                onDragStart={handleDragStart}
+                sensors={sensors}
+              >
+                <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                  {displayedGroups.map((group) => (
+                    <DroppableGroupColumn
+                      activeDragMemberId={activeDragMemberId}
                       archivedLabel={t("common.status.archived")}
-                      dragState="overlay"
+                      dropHereLabel={t("builder.group.dropHere")}
                       femaleLabel={t("common.gender.female")}
+                      key={group.groupNumber}
+                      group={group}
+                      groupMembersCountLabel={(count) =>
+                        t("builder.group.membersCount", { count })
+                      }
+                      groupTitleLabel={(groupNumber) =>
+                        t("builder.group.title", { number: groupNumber })
+                      }
                       managerLabel={t("common.role.manager")}
                       maleLabel={t("common.gender.male")}
-                      member={activeDragMember}
+                      membersById={membersById}
                       unknownGenderLabel={t("builder.member.unknownGender")}
                       unknownMemberLabel={t("builder.member.unknown")}
                     />
-                  </div>
-                ) : null}
-              </DragOverlay>
-            </DndContext>
-          )}
-        </div>
-      </section>
+                  ))}
+                </div>
+                <DragOverlay>
+                  {activeDragMember ? (
+                    <div className="w-[18rem] max-w-[80vw] rotate-1">
+                      <GroupMemberCard
+                        archivedLabel={t("common.status.archived")}
+                        dragState="overlay"
+                        femaleLabel={t("common.gender.female")}
+                        managerLabel={t("common.role.manager")}
+                        maleLabel={t("common.gender.male")}
+                        member={activeDragMember}
+                        unknownGenderLabel={t("builder.member.unknownGender")}
+                        unknownMemberLabel={t("builder.member.unknown")}
+                      />
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+            )}
+          </div>
+        </section>
+      ) : null}
 
       <section className="card border border-base-300 bg-base-100 shadow-sm">
         <div className="card-body">
@@ -913,7 +955,7 @@ export function ActivityBuilderPage({
               </button>
             </div>
 
-            {lastGeneratedAt ? (
+            {isRegularMode && lastGeneratedAt ? (
               <span className="badge badge-ghost badge-lg">
                 {t("builder.lastGenerated", {
                   time: new Intl.DateTimeFormat(

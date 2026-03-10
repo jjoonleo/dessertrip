@@ -50,6 +50,28 @@ describe("activity builder store", () => {
     expect(state.lastGeneratedAt).not.toBeNull();
   });
 
+  it("clears generated groups when switching to flash mode", () => {
+    const store = useActivityBuilderStore.getState();
+
+    store.openMemberPicker();
+    store.toggleMemberPickerMember("m1");
+    store.toggleMemberPickerMember("m2");
+    store.confirmMemberPicker();
+    store.setTargetGroupCount(2);
+    store.generateGroups(members);
+
+    expect(useActivityBuilderStore.getState().generatedGroups).toHaveLength(2);
+
+    store.setActivityType("flash");
+
+    const state = useActivityBuilderStore.getState();
+
+    expect(state.activityType).toBe("flash");
+    expect(state.generatedGroups).toEqual([]);
+    expect(state.lastGeneratedAt).toBeNull();
+    expect(state.warnings).toEqual([]);
+  });
+
   it("moves a generated member between groups", () => {
     const store = useActivityBuilderStore.getState();
 

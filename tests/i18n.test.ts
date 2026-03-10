@@ -51,7 +51,7 @@ describe("i18n error localization", () => {
   });
 
   it("translates regular UI keys for both locales", () => {
-    expect(translate("ko", "nav.activities.label")).toBe("정기 활동");
+    expect(translate("ko", "nav.activities.label")).toBe("활동");
     expect(translate("en", "nav.activities.label")).toBe("Activities");
   });
 });

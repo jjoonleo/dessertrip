@@ -1,41 +1,77 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Types } from "mongoose";
+import { deriveActivityName } from "../lib/activity";
+import { ActivityModel } from "../lib/models/activity";
 import { MemberModel } from "../lib/models/member";
-import { RegularActivityModel } from "../lib/models/regular-activity";
 import { getMemberParticipationStats } from "../lib/services/member-stats";
-import { getRegularActivity } from "../lib/services/regular-activities";
-import { deriveRegularActivityName } from "../lib/regular-activity";
-import { createRegularActivityInputSchema } from "../lib/validation";
+import { getActivity, updateActivity } from "../lib/services/activities";
+import { createActivityInputSchema } from "../lib/validation";
 
 afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("RegularActivity model", () => {
-  it("rejects an invalid KST Saturday date", async () => {
+describe("Activity model", () => {
+  it("rejects an invalid KST Saturday date for regular activities", async () => {
     expect(() =>
-      createRegularActivityInputSchema.parse({
+      createActivityInputSchema.parse({
+        activityType: "regular",
         activityDate: "2026-03-13",
         area: "Gangnam",
         participantMemberIds: [new Types.ObjectId().toString()],
         groupConfig: {
-          targetGroupCount: 2,
+          targetGroupCount: 1,
         },
+        groups: [
+          {
+            groupNumber: 1,
+            memberIds: [new Types.ObjectId().toString()],
+          },
+        ],
+        groupGeneratedAt: new Date(),
       }),
     ).toThrow("errors.validation.activity.saturdayRequired");
+  });
+
+  it("accepts a weekday date for flash meetings without groups", async () => {
+    expect(
+      createActivityInputSchema.parse({
+        activityType: "flash",
+        activityDate: "2026-03-13",
+        area: "Gangnam",
+        participantMemberIds: [new Types.ObjectId().toString()],
+        groupConfig: null,
+        groups: [],
+        groupGeneratedAt: null,
+      }),
+    ).toMatchObject({
+      activityType: "flash",
+      activityDate: "2026-03-13",
+      groupConfig: null,
+      groups: [],
+      groupGeneratedAt: null,
+    });
   });
 
   it("rejects duplicate participant IDs", async () => {
     const memberId = new Types.ObjectId().toString();
 
     expect(() =>
-      createRegularActivityInputSchema.parse({
+      createActivityInputSchema.parse({
+        activityType: "regular",
         activityDate: "2026-03-14",
         area: "Gangnam",
         participantMemberIds: [memberId, memberId],
         groupConfig: {
-          targetGroupCount: 2,
+          targetGroupCount: 1,
         },
+        groups: [
+          {
+            groupNumber: 1,
+            memberIds: [memberId],
+          },
+        ],
+        groupGeneratedAt: new Date(),
       }),
     ).toThrow("errors.validation.activity.participantsUnique");
   });
@@ -43,7 +79,8 @@ describe("RegularActivity model", () => {
   it("rejects grouped members that are not selected participants", async () => {
     const participantId = new Types.ObjectId();
     const outsiderId = new Types.ObjectId();
-    const activity = new RegularActivityModel({
+    const activity = new ActivityModel({
+      activityType: "regular",
       activityDate: "2026-03-14",
       area: "Gangnam",
       participantMemberIds: [participantId],
@@ -64,18 +101,23 @@ describe("RegularActivity model", () => {
     );
   });
 
-  it("enforces one activity per Saturday", async () => {
-    const uniqueIndex = RegularActivityModel.schema
+  it("enforces uniqueness only for regular activities on the same date", async () => {
+    const uniqueIndex = ActivityModel.schema
       .indexes()
       .find(([keys]: [Record<string, number>, Record<string, unknown>]) =>
         "activityDate" in keys,
       );
 
     expect(uniqueIndex?.[0]).toEqual({ activityDate: 1 });
-    expect(uniqueIndex?.[1]).toMatchObject({ unique: true });
+    expect(uniqueIndex?.[1]).toMatchObject({
+      unique: true,
+      partialFilterExpression: {
+        activityType: "regular",
+      },
+    });
   });
 
-  it("derives participation stats from activities after create, update, and delete", async () => {
+  it("derives weighted participation stats from activities", async () => {
     const memberA = new MemberModel({
       _id: new Types.ObjectId(),
       name: "Ari",
@@ -99,78 +141,67 @@ describe("RegularActivity model", () => {
       sort: vi.fn().mockResolvedValue([memberA, memberB, memberC]),
     } as never);
 
-    vi.spyOn(RegularActivityModel, "aggregate")
-      .mockResolvedValueOnce([
-        { _id: memberA._id, participationCount: 2 },
-        { _id: memberB._id, participationCount: 1 },
-        { _id: memberC._id, participationCount: 1 },
-      ] as never)
-      .mockResolvedValueOnce([
-        { _id: memberA._id, participationCount: 1 },
-        { _id: memberB._id, participationCount: 2 },
-        { _id: memberC._id, participationCount: 1 },
-      ] as never)
-      .mockResolvedValueOnce([
-        { _id: memberB._id, participationCount: 1 },
-        { _id: memberC._id, participationCount: 1 },
-      ] as never);
+    vi.spyOn(ActivityModel, "aggregate").mockResolvedValue([
+      { _id: memberA._id, participationScore: 1.5 },
+      { _id: memberB._id, participationScore: 1 },
+      { _id: memberC._id, participationScore: 0.5 },
+    ] as never);
 
-    const statsAfterCreate = await getMemberParticipationStats();
-    expect(statsAfterCreate).toEqual([
+    const stats = await getMemberParticipationStats();
+
+    expect(stats).toEqual([
       expect.objectContaining({
         id: memberA._id.toString(),
-        participationCount: 2,
+        participationScore: 1.5,
       }),
       expect.objectContaining({
         id: memberB._id.toString(),
-        participationCount: 1,
+        participationScore: 1,
       }),
       expect.objectContaining({
         id: memberC._id.toString(),
-        participationCount: 1,
-      }),
-    ]);
-
-    const statsAfterUpdate = await getMemberParticipationStats();
-    expect(statsAfterUpdate).toEqual([
-      expect.objectContaining({
-        id: memberA._id.toString(),
-        participationCount: 1,
-      }),
-      expect.objectContaining({
-        id: memberB._id.toString(),
-        participationCount: 2,
-      }),
-      expect.objectContaining({
-        id: memberC._id.toString(),
-        participationCount: 1,
-      }),
-    ]);
-
-    const statsAfterDelete = await getMemberParticipationStats();
-    expect(statsAfterDelete).toEqual([
-      expect.objectContaining({
-        id: memberA._id.toString(),
-        participationCount: 0,
-      }),
-      expect.objectContaining({
-        id: memberB._id.toString(),
-        participationCount: 1,
-      }),
-      expect.objectContaining({
-        id: memberC._id.toString(),
-        participationCount: 1,
+        participationScore: 0.5,
       }),
     ]);
   });
 
+  it("locks activity type during updates", async () => {
+    const activityId = new Types.ObjectId().toString();
+
+    vi.spyOn(ActivityModel, "findById").mockResolvedValue(
+      new ActivityModel({
+        _id: new Types.ObjectId(activityId),
+        activityType: "regular",
+        activityDate: "2026-03-14",
+        area: "Gangnam",
+        participantMemberIds: [new Types.ObjectId()],
+        groupConfig: {
+          targetGroupCount: 1,
+        },
+        groups: [
+          {
+            groupNumber: 1,
+            memberIds: [new Types.ObjectId()],
+          },
+        ],
+        groupGeneratedAt: new Date(),
+      }) as never,
+    );
+
+    await expect(
+      updateActivity(activityId, {
+        activityType: "flash",
+      }),
+    ).rejects.toThrow("errors.validation.activity.activityTypeLocked");
+  });
+
   it("derives the activity display name from the date and area", async () => {
-    expect(deriveRegularActivityName("2026-03-14", "Gangnam")).toBe(
+    expect(deriveActivityName("2026-03-14", "Gangnam")).toBe(
       "2026-03-14 Gangnam",
     );
   });
 
   it("returns null for invalid activity ids during edit lookup", async () => {
-    await expect(getRegularActivity("not-a-valid-id")).resolves.toBeNull();
+    await expect(getActivity("not-a-valid-id")).resolves.toBeNull();
   });
 });

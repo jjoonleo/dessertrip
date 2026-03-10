@@ -7,8 +7,8 @@ import {
 const mocks = vi.hoisted(() => ({
   connectToDatabase: vi.fn().mockResolvedValue(undefined),
   listMembers: vi.fn(),
-  getRegularActivity: vi.fn(),
-  listRegularActivities: vi.fn(),
+  getActivity: vi.fn(),
+  listActivities: vi.fn(),
   getMemberParticipationStats: vi.fn(),
 }));
 
@@ -20,9 +20,9 @@ vi.mock("../lib/services/members", () => ({
   listMembers: mocks.listMembers,
 }));
 
-vi.mock("../lib/services/regular-activities", () => ({
-  getRegularActivity: mocks.getRegularActivity,
-  listRegularActivities: mocks.listRegularActivities,
+vi.mock("../lib/services/activities", () => ({
+  getActivity: mocks.getActivity,
+  listActivities: mocks.listActivities,
 }));
 
 vi.mock("../lib/services/member-stats", () => ({
@@ -76,8 +76,9 @@ describe("dashboard data", () => {
         archivedAt: "2026-03-08T00:00:00.000Z",
       },
     ]);
-    mocks.getRegularActivity.mockResolvedValue({
+    mocks.getActivity.mockResolvedValue({
       id: "activity-1",
+      activityType: "regular",
       activityDate: "2026-03-14",
       area: "Gangnam",
       participantMemberIds: ["m1", "m2"],
@@ -87,6 +88,7 @@ describe("dashboard data", () => {
       groups: [],
       groupGeneratedAt: null,
       activityName: "2026-03-14 Gangnam",
+      participationWeight: 1,
     });
 
     const snapshot = await getActivityFormSnapshot("activity-1");
@@ -112,9 +114,10 @@ describe("dashboard data", () => {
         archivedAt: null,
       },
     ]);
-    mocks.listRegularActivities.mockResolvedValue([
+    mocks.listActivities.mockResolvedValue([
       {
         id: "activity-1",
+        activityType: "regular",
         activityDate: "2026-03-14",
         area: "Gangnam",
         participantMemberIds: ["m1", "m2"],
@@ -124,25 +127,26 @@ describe("dashboard data", () => {
         groups: [],
         groupGeneratedAt: null,
         activityName: "2026-03-14 Gangnam",
+        participationWeight: 1,
       },
       {
         id: "activity-2",
+        activityType: "flash",
         activityDate: "2026-03-21",
         area: "Mapo",
         participantMemberIds: ["m2"],
-        groupConfig: {
-          targetGroupCount: 1,
-        },
+        groupConfig: null,
         groups: [],
         groupGeneratedAt: null,
         activityName: "2026-03-21 Mapo",
+        participationWeight: 0.5,
       },
     ]);
 
     const snapshot = await getMemberParticipationHistorySnapshot("m1");
 
     expect(mocks.listMembers).toHaveBeenCalledWith("all");
-    expect(mocks.listRegularActivities).toHaveBeenCalledTimes(1);
+    expect(mocks.listActivities).toHaveBeenCalledTimes(1);
     expect(snapshot.member?.id).toBe("m1");
     expect(snapshot.activities.map((activity) => activity.id)).toEqual([
       "activity-1",
@@ -151,7 +155,7 @@ describe("dashboard data", () => {
 
   it("returns null when the selected member does not exist", async () => {
     mocks.listMembers.mockResolvedValue([]);
-    mocks.listRegularActivities.mockResolvedValue([]);
+    mocks.listActivities.mockResolvedValue([]);
 
     const snapshot = await getMemberParticipationHistorySnapshot("missing");
 

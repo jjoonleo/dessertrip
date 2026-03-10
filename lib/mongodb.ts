@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ensureActivityCollectionMigrated } from "./activity-migrations";
 
 type MongooseCache = {
   connection: typeof mongoose | null;
@@ -36,5 +37,6 @@ export async function connectToDatabase(uri = process.env.MONGODB_URI) {
   }
 
   globalCache.connection = await globalCache.promise;
+  await ensureActivityCollectionMigrated();
   return globalCache.connection;
 }

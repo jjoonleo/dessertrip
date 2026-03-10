@@ -13,6 +13,7 @@ import { useI18n } from "../i18n/i18n-provider";
 import { useMembersStore, selectVisibleMembers } from "../../lib/stores/members-store";
 import { useStatsStore } from "../../lib/stores/stats-store";
 import type { Member } from "../../lib/types/domain";
+import { FormField, FormStack } from "../ui/form-field";
 import { SectionHeader } from "./section-header";
 
 type MembersPageProps = {
@@ -87,7 +88,7 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
     upsertMember(result.data);
     upsertMemberStat({
       ...result.data,
-      participationCount: 0,
+      participationScore: 0,
     });
     closeCreateModal();
     router.refresh();
@@ -347,75 +348,71 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
               </p>
             </div>
 
-            <form className="space-y-4" onSubmit={handleCreateMember}>
-              <label className="form-control gap-2">
-                <span className="label-text font-medium">
-                  {t("members.modal.name")}
-                </span>
-                <input
-                  className="input input-bordered w-full"
-                  disabled={memberPending}
-                  onChange={(event) => setDraftName(event.target.value)}
-                  placeholder={t("members.modal.namePlaceholder")}
-                  value={memberDraft.name}
-                />
-              </label>
+            <form onSubmit={handleCreateMember}>
+              <FormStack>
+                <FormField label={t("members.modal.name")}>
+                  <input
+                    className="input input-bordered w-full"
+                    disabled={memberPending}
+                    onChange={(event) => setDraftName(event.target.value)}
+                    placeholder={t("members.modal.namePlaceholder")}
+                    value={memberDraft.name}
+                  />
+                </FormField>
 
-              <label className="form-control gap-2">
-                <span className="label-text font-medium">
-                  {t("members.modal.gender")}
-                </span>
-                <select
-                  className="select select-bordered w-full"
-                  disabled={memberPending}
-                  onChange={(event) =>
-                    setDraftGender(event.target.value as Member["gender"])
-                  }
-                  value={memberDraft.gender}
-                >
-                  <option value="female">{t("common.gender.female")}</option>
-                  <option value="male">{t("common.gender.male")}</option>
-                </select>
-              </label>
+                <FormField label={t("members.modal.gender")}>
+                  <select
+                    className="select select-bordered w-full"
+                    disabled={memberPending}
+                    onChange={(event) =>
+                      setDraftGender(event.target.value as Member["gender"])
+                    }
+                    value={memberDraft.gender}
+                  >
+                    <option value="female">{t("common.gender.female")}</option>
+                    <option value="male">{t("common.gender.male")}</option>
+                  </select>
+                </FormField>
 
-              <label className="label justify-start gap-3 rounded-box border border-base-300 bg-base-200 px-4 py-4">
-                <input
-                  checked={memberDraft.isManager}
-                  className="checkbox checkbox-primary"
-                  disabled={memberPending}
-                  onChange={(event) => setDraftManager(event.target.checked)}
-                  type="checkbox"
-                />
-                <span className="label-text">
-                  {t("members.modal.managerCheckbox")}
-                </span>
-              </label>
+                <label className="label justify-start gap-3 rounded-box border border-base-300 bg-base-200 px-4 py-4">
+                  <input
+                    checked={memberDraft.isManager}
+                    className="checkbox checkbox-primary"
+                    disabled={memberPending}
+                    onChange={(event) => setDraftManager(event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span className="label-text">
+                    {t("members.modal.managerCheckbox")}
+                  </span>
+                </label>
 
-              {memberError ? (
-                <div className="alert alert-error">
-                  <span>{memberError}</span>
+                {memberError ? (
+                  <div className="alert alert-error">
+                    <span>{memberError}</span>
+                  </div>
+                ) : null}
+
+                <div className="modal-action mt-0">
+                  <button
+                    className="btn btn-ghost"
+                    disabled={memberPending}
+                    onClick={closeCreateModal}
+                    type="button"
+                  >
+                    {t("members.modal.cancel")}
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    disabled={memberPending || memberDraft.name.trim().length === 0}
+                    type="submit"
+                  >
+                    {memberPending
+                      ? t("members.modal.savePending")
+                      : t("members.addUser")}
+                  </button>
                 </div>
-              ) : null}
-
-              <div className="modal-action mt-0">
-                <button
-                  className="btn btn-ghost"
-                  disabled={memberPending}
-                  onClick={closeCreateModal}
-                  type="button"
-                >
-                  {t("members.modal.cancel")}
-                </button>
-                <button
-                  className="btn btn-primary"
-                  disabled={memberPending || memberDraft.name.trim().length === 0}
-                  type="submit"
-                >
-                  {memberPending
-                    ? t("members.modal.savePending")
-                    : t("members.addUser")}
-                </button>
-              </div>
+              </FormStack>
             </form>
           </div>
           <button
@@ -439,74 +436,70 @@ export function MembersPage({ initialMembers }: MembersPageProps) {
               </p>
             </div>
 
-            <form className="space-y-4" onSubmit={handleSaveEdit}>
-              <label className="form-control gap-2">
-                <span className="label-text font-medium">
-                  {t("members.modal.name")}
-                </span>
-                <input
-                  className="input input-bordered w-full"
-                  disabled={memberPending}
-                  onChange={(event) => setEditDraftName(event.target.value)}
-                  value={editDraft.name}
-                />
-              </label>
+            <form onSubmit={handleSaveEdit}>
+              <FormStack>
+                <FormField label={t("members.modal.name")}>
+                  <input
+                    className="input input-bordered w-full"
+                    disabled={memberPending}
+                    onChange={(event) => setEditDraftName(event.target.value)}
+                    value={editDraft.name}
+                  />
+                </FormField>
 
-              <label className="form-control gap-2">
-                <span className="label-text font-medium">
-                  {t("members.modal.gender")}
-                </span>
-                <select
-                  className="select select-bordered w-full"
-                  disabled={memberPending}
-                  onChange={(event) =>
-                    setEditDraftGender(event.target.value as Member["gender"])
-                  }
-                  value={editDraft.gender}
-                >
-                  <option value="female">{t("common.gender.female")}</option>
-                  <option value="male">{t("common.gender.male")}</option>
-                </select>
-              </label>
+                <FormField label={t("members.modal.gender")}>
+                  <select
+                    className="select select-bordered w-full"
+                    disabled={memberPending}
+                    onChange={(event) =>
+                      setEditDraftGender(event.target.value as Member["gender"])
+                    }
+                    value={editDraft.gender}
+                  >
+                    <option value="female">{t("common.gender.female")}</option>
+                    <option value="male">{t("common.gender.male")}</option>
+                  </select>
+                </FormField>
 
-              <label className="label justify-start gap-3 rounded-box border border-base-300 bg-base-200 px-4 py-4">
-                <input
-                  checked={editDraft.isManager}
-                  className="checkbox checkbox-primary"
-                  disabled={memberPending}
-                  onChange={(event) => setEditDraftManager(event.target.checked)}
-                  type="checkbox"
-                />
-                <span className="label-text">
-                  {t("members.modal.managerCheckbox")}
-                </span>
-              </label>
+                <label className="label justify-start gap-3 rounded-box border border-base-300 bg-base-200 px-4 py-4">
+                  <input
+                    checked={editDraft.isManager}
+                    className="checkbox checkbox-primary"
+                    disabled={memberPending}
+                    onChange={(event) => setEditDraftManager(event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span className="label-text">
+                    {t("members.modal.managerCheckbox")}
+                  </span>
+                </label>
 
-              {memberError ? (
-                <div className="alert alert-error">
-                  <span>{memberError}</span>
+                {memberError ? (
+                  <div className="alert alert-error">
+                    <span>{memberError}</span>
+                  </div>
+                ) : null}
+
+                <div className="modal-action mt-0">
+                  <button
+                    className="btn btn-ghost"
+                    disabled={memberPending}
+                    onClick={closeEditModal}
+                    type="button"
+                  >
+                    {t("members.modal.cancel")}
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    disabled={memberPending || editDraft.name.trim().length === 0}
+                    type="submit"
+                  >
+                    {memberPending
+                      ? t("members.modal.savePending")
+                      : t("members.modal.save")}
+                  </button>
                 </div>
-              ) : null}
-
-              <div className="modal-action mt-0">
-                <button
-                  className="btn btn-ghost"
-                  disabled={memberPending}
-                  onClick={closeEditModal}
-                  type="button"
-                >
-                  {t("members.modal.cancel")}
-                </button>
-                <button
-                  className="btn btn-primary"
-                  disabled={memberPending || editDraft.name.trim().length === 0}
-                  type="submit"
-                >
-                  {memberPending
-                    ? t("members.modal.savePending")
-                    : t("members.modal.save")}
-                </button>
-              </div>
+              </FormStack>
             </form>
           </div>
           <button

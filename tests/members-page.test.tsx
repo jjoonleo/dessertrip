@@ -46,10 +46,10 @@ const archivedMember: Member = {
   archivedAt: "2026-03-09T00:00:00.000Z",
 };
 
-function makeStats(member: Member, participationCount: number): MemberParticipationStat {
+function makeStats(member: Member, participationScore: number): MemberParticipationStat {
   return {
     ...member,
-    participationCount,
+    participationScore,
   };
 }
 
@@ -87,7 +87,7 @@ describe("members page", () => {
       search: "",
       genderFilter: "all",
       archiveFilter: "active",
-      sortKey: "participationCount",
+      sortKey: "participationScore",
       sortDirection: "desc",
     });
   });

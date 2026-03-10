@@ -8,7 +8,7 @@ describe("stats store", () => {
       search: "",
       genderFilter: "all",
       archiveFilter: "active",
-      sortKey: "participationCount",
+      sortKey: "participationScore",
       sortDirection: "desc",
     });
   });
@@ -21,7 +21,7 @@ describe("stats store", () => {
         gender: "female",
         isManager: false,
         archivedAt: null,
-        participationCount: 2,
+        participationScore: 2,
       },
       {
         id: "2",
@@ -29,7 +29,7 @@ describe("stats store", () => {
         gender: "male",
         isManager: true,
         archivedAt: null,
-        participationCount: 5,
+        participationScore: 5,
       },
       {
         id: "3",
@@ -37,7 +37,7 @@ describe("stats store", () => {
         gender: "female",
         isManager: false,
         archivedAt: null,
-        participationCount: 1,
+        participationScore: 1,
       },
     ]);
     useStatsStore.getState().setGenderFilter("female");
@@ -57,7 +57,7 @@ describe("stats store", () => {
         gender: "female",
         isManager: false,
         archivedAt: null,
-        participationCount: 2,
+        participationScore: 2,
       },
       {
         id: "2",
@@ -65,7 +65,7 @@ describe("stats store", () => {
         gender: "male",
         isManager: true,
         archivedAt: "2026-03-09T00:00:00.000Z",
-        participationCount: 5,
+        participationScore: 5,
       },
     ]);
     useStatsStore.getState().setArchiveFilter("archived");

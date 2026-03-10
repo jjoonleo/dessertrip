@@ -1,22 +1,22 @@
 "use client";
 
 import { create } from "zustand";
-import type { RegularActivity } from "../types/domain";
+import type { Activity } from "../types/domain";
 
 export type ActivitiesState = {
-  activities: RegularActivity[];
+  activities: Activity[];
   search: string;
   selectedActivityId: string | null;
   pendingDeleteId: string | null;
   pending: boolean;
   error: string | null;
-  hydrate: (activities: RegularActivity[]) => void;
+  hydrate: (activities: Activity[]) => void;
   setSearch: (search: string) => void;
   selectActivity: (activityId: string | null) => void;
   markDeletePending: (activityId: string | null) => void;
   setPending: (pending: boolean) => void;
   setError: (error: string | null) => void;
-  upsertActivity: (activity: RegularActivity) => void;
+  upsertActivity: (activity: Activity) => void;
   removeActivity: (activityId: string) => void;
 };
 

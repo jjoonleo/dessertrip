@@ -28,7 +28,7 @@ const stats: MemberParticipationStat[] = [
     gender: "female",
     isManager: false,
     archivedAt: null,
-    participationCount: 4,
+    participationScore: 4,
   },
 ];
 
@@ -44,7 +44,7 @@ describe("stats page", () => {
       search: "",
       genderFilter: "all",
       archiveFilter: "active",
-      sortKey: "participationCount",
+      sortKey: "participationScore",
       sortDirection: "desc",
     });
   });

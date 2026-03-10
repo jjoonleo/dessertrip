@@ -3,15 +3,16 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useShallow } from "zustand/react/shallow";
-import { deleteRegularActivityAction } from "../../app/actions";
+import { isRegularActivity } from "../../lib/activity";
+import { deleteActivityAction } from "../../app/actions";
 import { useI18n } from "../i18n/i18n-provider";
 import { useActivitiesStore, selectVisibleActivities } from "../../lib/stores/activities-store";
 import { useStatsStore } from "../../lib/stores/stats-store";
-import type { Member, RegularActivity } from "../../lib/types/domain";
+import type { Activity, Member } from "../../lib/types/domain";
 import { SectionHeader } from "./section-header";
 
 type ActivitiesPageProps = {
-  initialActivities: RegularActivity[];
+  initialActivities: Activity[];
   initialMembers: Member[];
 };
 
@@ -60,7 +61,7 @@ export function ActivitiesPage({
     setActivityPending(true);
     setActivityError(null);
 
-    const result = await deleteRegularActivityAction(activityId);
+    const result = await deleteActivityAction(activityId);
 
     if (!result.ok) {
       setActivityPending(false);
@@ -180,16 +181,23 @@ export function ActivitiesPage({
                       <div className="space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
                           <h2 className="text-lg font-bold">{activity.activityName}</h2>
+                          <span className="badge badge-accent badge-outline">
+                            {activity.activityType === "flash"
+                              ? t("common.activityType.flash")
+                              : t("common.activityType.regular")}
+                          </span>
                           <span className="badge badge-outline">
                             {t("activities.badge.participants", {
                               count: activity.participantMemberIds.length,
                             })}
                           </span>
-                          <span className="badge badge-secondary badge-outline">
-                            {t("activities.badge.groups", {
-                              count: activity.groups.length,
-                            })}
-                          </span>
+                          {isRegularActivity(activity) ? (
+                            <span className="badge badge-secondary badge-outline">
+                              {t("activities.badge.groups", {
+                                count: activity.groups.length,
+                              })}
+                            </span>
+                          ) : null}
                         </div>
                         <p className="text-sm text-base-content/60">
                           {t("activities.collapse.hint")}
@@ -236,13 +244,13 @@ export function ActivitiesPage({
                         )}
                       </div>
 
-                      {activity.groups.length === 0 ? (
-                        <div className="alert">
-                          <span>{t("activities.groups.empty")}</span>
-                        </div>
-                      ) : (
+                      {isRegularActivity(activity) ? (
                         <div className="grid gap-3">
-                          {activity.groups.map((group) => (
+                          {activity.groups.length === 0 ? (
+                            <div className="alert">
+                              <span>{t("activities.groups.empty")}</span>
+                            </div>
+                          ) : activity.groups.map((group) => (
                             <div
                               key={group.groupNumber}
                               className="rounded-box border border-base-300 bg-base-200 p-4"
@@ -273,7 +281,7 @@ export function ActivitiesPage({
                             </div>
                           ))}
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 );

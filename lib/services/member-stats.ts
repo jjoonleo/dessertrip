@@ -1,5 +1,5 @@
 import { MemberModel } from "../models/member";
-import { RegularActivityModel } from "../models/regular-activity";
+import { ActivityModel } from "../models/activity";
 import type { ArchiveFilter, MemberParticipationStat } from "../types/domain";
 
 function getMemberArchiveQuery(archiveFilter: ArchiveFilter) {
@@ -29,9 +29,9 @@ export async function getMemberParticipationStats(
 ): Promise<MemberParticipationStat[]> {
   const [members, counts] = await Promise.all([
     MemberModel.find(getMemberArchiveQuery(archiveFilter)).sort({ name: 1, _id: 1 }),
-    RegularActivityModel.aggregate<{
+    ActivityModel.aggregate<{
       _id: unknown;
-      participationCount: number;
+      participationScore: number;
     }>([
       {
         $unwind: "$participantMemberIds",
@@ -39,14 +39,24 @@ export async function getMemberParticipationStats(
       {
         $group: {
           _id: "$participantMemberIds",
-          participationCount: { $sum: 1 },
+          participationScore: {
+            $sum: {
+              $cond: [
+                {
+                  $eq: [{ $ifNull: ["$activityType", "regular"] }, "flash"],
+                },
+                0.5,
+                1,
+              ],
+            },
+          },
         },
       },
     ]),
   ]);
 
   const countByMemberId = new Map(
-    counts.map((count) => [String(count._id), count.participationCount]),
+    counts.map((count) => [String(count._id), count.participationScore]),
   );
 
   return members.map((member) => ({
@@ -55,6 +65,6 @@ export async function getMemberParticipationStats(
     gender: member.gender,
     isManager: member.isManager,
     archivedAt: member.archivedAt ? member.archivedAt.toISOString() : null,
-    participationCount: countByMemberId.get(member._id.toString()) ?? 0,
+    participationScore: countByMemberId.get(member._id.toString()) ?? 0,
   }));
 }

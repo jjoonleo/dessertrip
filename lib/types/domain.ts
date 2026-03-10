@@ -1,8 +1,10 @@
 export const genderValues = ["male", "female"] as const;
 export const archiveFilterValues = ["active", "archived", "all"] as const;
+export const activityTypeValues = ["regular", "flash"] as const;
 
 export type Gender = (typeof genderValues)[number];
 export type ArchiveFilter = (typeof archiveFilterValues)[number];
+export type ActivityType = (typeof activityTypeValues)[number];
 
 export type Member = {
   id: string;
@@ -17,18 +19,33 @@ export type ActivityGroup = {
   memberIds: string[];
 };
 
-export type RegularActivity = {
+type ActivityBase = {
   id: string;
+  activityType: ActivityType;
   activityDate: string;
   area: string;
   participantMemberIds: string[];
+  activityName: string;
+  participationWeight: number;
+};
+
+export type RegularActivity = ActivityBase & {
+  activityType: "regular";
   groupConfig: {
     targetGroupCount: number;
   };
   groups: ActivityGroup[];
   groupGeneratedAt: string | null;
-  activityName: string;
 };
+
+export type FlashActivity = ActivityBase & {
+  activityType: "flash";
+  groupConfig: null;
+  groups: ActivityGroup[];
+  groupGeneratedAt: null;
+};
+
+export type Activity = RegularActivity | FlashActivity;
 
 export type AdminUser = {
   id: string;
@@ -37,5 +54,5 @@ export type AdminUser = {
 };
 
 export type MemberParticipationStat = Member & {
-  participationCount: number;
+  participationScore: number;
 };

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { loginAction } from "../../app/actions";
 import { useAuthStore } from "../../lib/stores/auth-store";
 import { useI18n } from "../i18n/i18n-provider";
+import { FormField, FormStack } from "../ui/form-field";
 
 export function LoginForm() {
   const { t } = useI18n();
@@ -58,53 +59,49 @@ export function LoginForm() {
           </p>
         </div>
 
-        <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
-          <label className="form-control w-full gap-2">
-            <span className="label-text font-medium">
-              {t("login.form.username")}
-            </span>
-            <input
-              autoComplete="username"
-              className="input input-bordered w-full"
-              disabled={pending}
-              onChange={(event) => setUsername(event.target.value)}
-              placeholder={t("login.form.usernamePlaceholder")}
-              value={username}
-            />
-          </label>
+        <form onSubmit={handleSubmit}>
+          <FormStack>
+            <FormField label={t("login.form.username")}>
+              <input
+                autoComplete="username"
+                className="input input-bordered w-full"
+                disabled={pending}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder={t("login.form.usernamePlaceholder")}
+                value={username}
+              />
+            </FormField>
 
-          <label className="form-control w-full gap-2">
-            <span className="label-text font-medium">
-              {t("login.form.password")}
-            </span>
-            <input
-              autoComplete="current-password"
-              className="input input-bordered w-full"
-              disabled={pending}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder={t("login.form.passwordPlaceholder")}
-              type="password"
-              value={password}
-            />
-          </label>
+            <FormField label={t("login.form.password")}>
+              <input
+                autoComplete="current-password"
+                className="input input-bordered w-full"
+                disabled={pending}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder={t("login.form.passwordPlaceholder")}
+                type="password"
+                value={password}
+              />
+            </FormField>
 
-          {error ? (
-            <div className="alert alert-error">
-              <span>{error}</span>
-            </div>
-          ) : null}
+            {error ? (
+              <div className="alert alert-error">
+                <span>{error}</span>
+              </div>
+            ) : null}
 
-          <button
-            className="btn btn-primary w-full"
-            disabled={pending || username.trim().length === 0 || password.length === 0}
-            type="submit"
-          >
-            {pending
-              ? t("login.form.submitPending")
-              : status === "authenticated"
-                ? t("login.form.submitDone")
-                : t("login.form.submitIdle")}
-          </button>
+            <button
+              className="btn btn-primary w-full"
+              disabled={pending || username.trim().length === 0 || password.length === 0}
+              type="submit"
+            >
+              {pending
+                ? t("login.form.submitPending")
+                : status === "authenticated"
+                  ? t("login.form.submitDone")
+                  : t("login.form.submitIdle")}
+            </button>
+          </FormStack>
         </form>
       </div>
     </section>

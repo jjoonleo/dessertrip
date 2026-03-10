@@ -8,7 +8,7 @@ import type {
   MemberParticipationStat,
 } from "../types/domain";
 
-type StatsSortKey = "name" | "participationCount";
+type StatsSortKey = "name" | "participationScore";
 type SortDirection = "asc" | "desc";
 type GenderFilter = Gender | "all";
 
@@ -36,7 +36,7 @@ export const useStatsStore = create<StatsState>((set) => ({
   search: "",
   genderFilter: "all",
   archiveFilter: "active",
-  sortKey: "participationCount",
+  sortKey: "participationScore",
   sortDirection: "desc",
   hydrate: (stats, locale = "ko") => set({ stats, locale }),
   setLocale: (locale) => set({ locale }),
@@ -80,7 +80,7 @@ export function selectVisibleStats(state: StatsState) {
       return left.name.localeCompare(right.name, state.locale) * direction;
     }
 
-    return (left.participationCount - right.participationCount) * direction;
+    return (left.participationScore - right.participationScore) * direction;
   });
 
   return filteredStats;

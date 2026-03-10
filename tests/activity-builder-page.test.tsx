@@ -15,7 +15,7 @@ import { useActivitiesStore } from "../lib/stores/activities-store";
 import { useActivityBuilderStore } from "../lib/stores/activity-builder-store";
 import { useMembersStore } from "../lib/stores/members-store";
 import { useStatsStore } from "../lib/stores/stats-store";
-import type { Member, RegularActivity } from "../lib/types/domain";
+import type { Activity, Member } from "../lib/types/domain";
 import { renderWithLocale } from "./test-utils";
 
 const refreshMock = vi.fn();
@@ -32,8 +32,8 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("../app/actions", () => ({
-  createRegularActivityAction: vi.fn(),
-  updateRegularActivityAction: vi.fn(),
+  createActivityAction: vi.fn(),
+  updateActivityAction: vi.fn(),
 }));
 
 vi.mock("@dnd-kit/core", async () => {
@@ -62,8 +62,9 @@ const members: Member[] = [
   },
 ];
 
-const activity: RegularActivity = {
+const activity: Activity = {
   id: "activity-1",
+  activityType: "regular",
   activityDate: "2026-03-14",
   area: "Gangnam",
   participantMemberIds: ["m1", "m2"],
@@ -78,6 +79,7 @@ const activity: RegularActivity = {
   ],
   groupGeneratedAt: "2026-03-10T10:00:00.000Z",
   activityName: "2026-03-14 Gangnam",
+  participationWeight: 1,
 };
 
 afterEach(() => {
@@ -125,7 +127,7 @@ describe("activity builder page", () => {
       search: "",
       genderFilter: "all",
       archiveFilter: "active",
-      sortKey: "participationCount",
+      sortKey: "participationScore",
       sortDirection: "desc",
     });
     useActivityBuilderStore.getState().resetDraft();
@@ -189,34 +191,29 @@ describe("activity builder page", () => {
     expect(canScroll?.(document.createElement("div"))).toBe(false);
   });
 
-  it("falls back to the saved group length when targetGroupCount is missing", async () => {
-    const legacyActivity = {
+  it("hides grouping controls for flash meetings", async () => {
+    const flashActivity: Activity = {
       ...activity,
-      groupConfig: {} as { targetGroupCount: number },
-      groups: [
-        {
-          groupNumber: 1,
-          memberIds: ["m1"],
-        },
-        {
-          groupNumber: 2,
-          memberIds: ["m2"],
-        },
-      ],
+      groupConfig: null,
+      activityType: "flash" as const,
+      groups: [],
+      groupGeneratedAt: null,
+      participationWeight: 0.5,
     };
 
     renderWithLocale(
       <ActivityBuilderPage
-        editingActivity={legacyActivity}
+        editingActivity={flashActivity}
         initialMembers={members}
       />,
       "en",
     );
 
     await waitFor(() => {
-      expect(useActivityBuilderStore.getState().targetGroupCount).toBe(2);
+      expect(useActivityBuilderStore.getState().activityType).toBe("flash");
     });
 
-    expect(screen.getByDisplayValue("2")).toBeTruthy();
+    expect(screen.getByDisplayValue("Flash")).toBeTruthy();
+    expect(screen.queryByDisplayValue("2")).toBeNull();
   });
 });

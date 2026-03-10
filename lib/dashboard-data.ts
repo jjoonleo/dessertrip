@@ -1,5 +1,5 @@
 import { connectToDatabase } from "./mongodb";
-import { getRegularActivity, listRegularActivities } from "./services/regular-activities";
+import { getActivity, listActivities } from "./services/activities";
 import { listMembers } from "./services/members";
 import { getMemberParticipationStats } from "./services/member-stats";
 
@@ -8,7 +8,7 @@ export async function getOverviewSnapshot() {
 
   const [members, activities] = await Promise.all([
     listMembers(),
-    listRegularActivities(),
+    listActivities(),
   ]);
 
   return {
@@ -39,7 +39,7 @@ export async function getActivityFormSnapshot(activityId?: string) {
 
   const [members, editingActivity] = await Promise.all([
     listMembers("all"),
-    getRegularActivity(activityId),
+    getActivity(activityId),
   ]);
 
   const visibleMembers = editingActivity
@@ -61,7 +61,7 @@ export async function getActivitiesSnapshot() {
 
   const [members, activities] = await Promise.all([
     listMembers("all"),
-    listRegularActivities(),
+    listActivities(),
   ]);
 
   return {
@@ -83,7 +83,7 @@ export async function getMemberParticipationHistorySnapshot(memberId: string) {
 
   const [members, activities] = await Promise.all([
     listMembers("all"),
-    listRegularActivities(),
+    listActivities(),
   ]);
 
   const member = members.find((currentMember) => currentMember.id === memberId) ?? null;
