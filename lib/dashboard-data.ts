@@ -17,10 +17,17 @@ function getReferencedActivityMembers(members: Member[], activity: Activity) {
 }
 
 function getEditableActivityMembers(members: Member[], activity: Activity) {
+  const referencedMemberIds = new Set<string>([
+    ...activity.participantMemberIds,
+    ...((activity as any).groups ?? []).flatMap(
+      (group: any) => group.memberIds ?? [],
+    ),
+  ]);
+
   return members.filter(
     (member) =>
       member.archivedAt === null ||
-      activity.participantMemberIds.includes(member.id),
+      referencedMemberIds.has(member.id),
   );
 }
 
