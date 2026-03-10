@@ -6,7 +6,7 @@ import { isRegularActivity } from "../../lib/activity";
 import { formatParticipationScore } from "../../lib/participation";
 import { formatStatsMonthLabel, type StatsMonthKey } from "../../lib/stats";
 import type { Activity, Member } from "../../lib/types/domain";
-import { useI18n } from "../i18n/i18n-provider";
+import { useI18n } from "../i18n/i18n-context";
 import { SectionHeader } from "./section-header";
 
 type MemberParticipationHistoryPageProps = {

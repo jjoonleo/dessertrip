@@ -12,7 +12,7 @@ import {
   getParticipationScoreForPeriod,
   type StatsPeriod,
 } from "../../lib/stats";
-import { useI18n } from "../i18n/i18n-provider";
+import { useI18n } from "../i18n/i18n-context";
 import { useStatsStore, selectVisibleStats } from "../../lib/stores/stats-store";
 import type { Member, MemberParticipationStat } from "../../lib/types/domain";
 import { SectionHeader } from "./section-header";

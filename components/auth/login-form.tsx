@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { loginAction } from "../../app/actions";
 import { useAuthStore } from "../../lib/stores/auth-store";
-import { useI18n } from "../i18n/i18n-provider";
+import { useI18n } from "../i18n/i18n-context";
 import { FormField, FormStack } from "../ui/form-field";
 
 export function LoginForm() {

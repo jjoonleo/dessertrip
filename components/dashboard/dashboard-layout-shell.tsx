@@ -7,7 +7,7 @@ import { logoutAction } from "../../app/actions";
 import { dashboardNavItems } from "../../lib/dashboard-navigation";
 import { useAuthStore } from "../../lib/stores/auth-store";
 import { useThemeStore } from "../../lib/stores/theme-store";
-import { useI18n } from "../i18n/i18n-provider";
+import { useI18n } from "../i18n/i18n-context";
 import { ThemeToggle } from "../theme/theme-toggle";
 
 type DashboardLayoutShellProps = {

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useShallow } from "zustand/react/shallow";
 import { isRegularActivity } from "../../lib/activity";
 import { deleteActivityAction } from "../../app/actions";
-import { useI18n } from "../i18n/i18n-provider";
+import { useI18n } from "../i18n/i18n-context";
 import { useActivitiesStore, selectVisibleActivities } from "../../lib/stores/activities-store";
 import { useStatsStore } from "../../lib/stores/stats-store";
 import type { Activity, Member } from "../../lib/types/domain";

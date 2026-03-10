@@ -6,7 +6,7 @@ import {
   LOCALE_COOKIE_NAME,
   resolveLocaleFromBrowserLanguages,
 } from "../../lib/i18n/config";
-import { useI18n } from "./i18n-provider";
+import { useI18n } from "./i18n-context";
 
 const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 

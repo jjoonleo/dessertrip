@@ -9,7 +9,7 @@ import {
   restoreMemberAction,
   updateMemberAction,
 } from "../../app/actions";
-import { useI18n } from "../i18n/i18n-provider";
+import { useI18n } from "../i18n/i18n-context";
 import { useMembersStore, selectVisibleMembers } from "../../lib/stores/members-store";
 import { useStatsStore } from "../../lib/stores/stats-store";
 import type { Member } from "../../lib/types/domain";

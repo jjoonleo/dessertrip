@@ -33,7 +33,7 @@ import {
 } from "../../app/actions";
 import { getActivityTypeConfig } from "../../lib/activity";
 import { formatParticipationScore } from "../../lib/participation";
-import { useI18n } from "../i18n/i18n-provider";
+import { useI18n } from "../i18n/i18n-context";
 import {
   activityGroupsEqual,
   getGroupDropId,
