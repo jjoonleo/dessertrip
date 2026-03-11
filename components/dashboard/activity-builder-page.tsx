@@ -418,7 +418,7 @@ type DroppableGroupColumnProps = {
   managerLabel: string;
   maleLabel: string;
   membersById: Map<string, Member>;
-  onRemoveGroup: (groupNumber: number) => void;
+  onRemoveGroup: (group: ActivityGroup) => void;
   registerMemberTileNode: (
     memberId: string,
     node: HTMLButtonElement | null,
@@ -472,7 +472,7 @@ function DroppableGroupColumn({
               aria-label={groupRemoveLabel(group.groupNumber)}
               className="btn btn-ghost btn-xs px-0 text-error disabled:text-base-content/40"
               disabled={groupCount <= 1}
-              onClick={() => onRemoveGroup(group.groupNumber)}
+              onClick={() => onRemoveGroup(group)}
               type="button"
             >
               {groupRemoveActionLabel}
@@ -570,6 +570,9 @@ export function ActivityBuilderPage({
   const [activeDragWidth, setActiveDragWidth] = useState<number | null>(null);
   const [previewGroups, setPreviewGroups] = useState<ActivityGroup[] | null>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [pendingRemoveGroup, setPendingRemoveGroup] = useState<ActivityGroup | null>(
+    null,
+  );
   const [settlingDrag, setSettlingDrag] = useState<SettlingDrag | null>(null);
   const memberTileNodesRef = useRef(new Map<string, HTMLButtonElement>());
   const activeDragRectRef = useRef<MemberTileRect | null>(null);
@@ -927,12 +930,14 @@ export function ActivityBuilderPage({
     resetDraft();
     clearBuilderErrors();
     setActivityError(null);
+    setPendingRemoveGroup(null);
     router.push("/dashboard/activities");
   }
 
   function handleResetDraft() {
     clearBuilderErrors();
     setActivityError(null);
+    setPendingRemoveGroup(null);
 
     if (editingActivity) {
       hydrateFromActivity(editingActivity);
@@ -945,6 +950,28 @@ export function ActivityBuilderPage({
   function handleConfirmMembers() {
     confirmMemberPicker();
     syncWarnings(members);
+  }
+
+  function handleRequestRemoveGroup(group: ActivityGroup) {
+    if (group.memberIds.length === 0) {
+      removeGroup(group.groupNumber);
+      return;
+    }
+
+    setPendingRemoveGroup(group);
+  }
+
+  function handleConfirmRemoveGroup() {
+    if (!pendingRemoveGroup) {
+      return;
+    }
+
+    removeGroup(pendingRemoveGroup.groupNumber);
+    setPendingRemoveGroup(null);
+  }
+
+  function handleCancelRemoveGroup() {
+    setPendingRemoveGroup(null);
   }
 
   function handleDragStart(event: DragStartEvent) {
@@ -1399,7 +1426,7 @@ export function ActivityBuilderPage({
                         managerLabel={t("common.role.manager")}
                         maleLabel={t("common.gender.male")}
                         membersById={membersById}
-                        onRemoveGroup={removeGroup}
+                        onRemoveGroup={handleRequestRemoveGroup}
                         registerMemberTileNode={registerMemberTileNode}
                         unknownGenderLabel={t("builder.member.unknownGender")}
                         unknownMemberLabel={t("builder.member.unknown")}
@@ -1519,6 +1546,41 @@ export function ActivityBuilderPage({
           </div>
         </div>
       </section>
+
+      {pendingRemoveGroup ? (
+        <div className="modal modal-open" role="dialog">
+          <div className="modal-box max-w-lg space-y-5">
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold">
+                {t("builder.group.removeConfirmTitle")}
+              </h2>
+              <p className="text-sm text-base-content/70">
+                {t("builder.group.removeConfirmDescription", {
+                  number: pendingRemoveGroup.groupNumber,
+                  count: pendingRemoveGroup.memberIds.length,
+                })}
+              </p>
+            </div>
+
+            <div className="modal-action">
+              <button className="btn btn-ghost" onClick={handleCancelRemoveGroup} type="button">
+                {t("activities.actions.cancel")}
+              </button>
+              <button className="btn btn-error" onClick={handleConfirmRemoveGroup} type="button">
+                {t("builder.group.confirmRemoveAction")}
+              </button>
+            </div>
+          </div>
+          <button
+            aria-label={t("activities.actions.cancel")}
+            className="modal-backdrop"
+            onClick={handleCancelRemoveGroup}
+            type="button"
+          >
+            {t("activities.actions.cancel")}
+          </button>
+        </div>
+      ) : null}
 
       {isMemberPickerOpen ? (
         <div className="modal modal-open" role="dialog">

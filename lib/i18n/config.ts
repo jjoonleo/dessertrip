@@ -236,6 +236,10 @@ export const enMessages = {
   "builder.group.addDescription": "Create an empty group or drop a member here.",
   "builder.group.removeAction": "Remove",
   "builder.group.remove": "Remove group {{number}}",
+  "builder.group.removeConfirmTitle": "Remove this group?",
+  "builder.group.removeConfirmDescription":
+    "Group {{number}} has {{count}} members. Removing it will move them to the unassigned area.",
+  "builder.group.confirmRemoveAction": "Remove group",
   "builder.group.title": "Group {{number}}",
   "builder.group.membersCount": "{{count}} members",
   "builder.group.dropHere": "Drop a member here",
@@ -618,6 +622,10 @@ export const koMessages: MessageDictionary = {
   "builder.group.addDescription": "빈 조를 만들거나 멤버를 여기로 놓으세요.",
   "builder.group.removeAction": "삭제",
   "builder.group.remove": "{{number}}조 삭제",
+  "builder.group.removeConfirmTitle": "이 조를 삭제할까요?",
+  "builder.group.removeConfirmDescription":
+    "{{number}}조에 멤버 {{count}}명이 있습니다. 삭제하면 이 멤버들은 미배정 영역으로 이동합니다.",
+  "builder.group.confirmRemoveAction": "조 삭제",
   "builder.group.title": "{{number}}조",
   "builder.group.membersCount": "멤버 {{count}}명",
   "builder.group.dropHere": "여기로 멤버를 놓으세요",

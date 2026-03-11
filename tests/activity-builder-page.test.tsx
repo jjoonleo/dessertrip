@@ -331,6 +331,8 @@ describe("activity builder page", () => {
 
     await user.click(screen.getByRole("button", { name: "Remove group 3" }));
     await user.click(screen.getByRole("button", { name: "Remove group 2" }));
+    expect(screen.getByText("Remove this group?")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Remove group" }));
 
     expect(useActivityBuilderStore.getState().generatedGroups).toEqual([
       { groupNumber: 1, memberIds: ["m1"] },
@@ -339,6 +341,36 @@ describe("activity builder page", () => {
       (screen.getByRole("button", { name: "Remove group 1" }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
+  });
+
+  it("keeps a non-empty group when the remove confirmation is canceled", async () => {
+    const user = userEvent.setup();
+
+    renderWithLocale(
+      <ActivityBuilderPage editingActivity={groupedActivity} initialMembers={members} />,
+      "en",
+    );
+
+    await waitFor(() => {
+      expect(useActivityBuilderStore.getState().editingActivityId).toBe("activity-1");
+    });
+
+    await user.click(screen.getByRole("button", { name: "Remove group 2" }));
+
+    expect(screen.getByText("Remove this group?")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Group 2 has 1 members. Removing it will move them to the unassigned area.",
+      ),
+    ).toBeTruthy();
+
+    await user.click(screen.getAllByRole("button", { name: "Cancel" })[0]);
+
+    expect(screen.queryByText("Remove this group?")).toBeNull();
+    expect(useActivityBuilderStore.getState().generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1"] },
+      { groupNumber: 2, memberIds: ["m2"] },
+    ]);
   });
 
   it("creates a new group when dropping an unassigned member on the add-group tile", async () => {
@@ -710,6 +742,8 @@ describe("activity builder page", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Remove group 2" }));
+    expect(screen.getByText("Remove this group?")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Remove group" }));
 
     expect(useActivityBuilderStore.getState().generatedGroups).toEqual([
       { groupNumber: 1, memberIds: ["m1"] },
