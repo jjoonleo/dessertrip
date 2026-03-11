@@ -2,7 +2,8 @@
 
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, screen, waitFor } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import {
   AutoScrollActivator,
   MouseSensor,
@@ -10,6 +11,7 @@ import {
   TraversalOrder,
   useSensor,
 } from "@dnd-kit/core";
+import { updateActivityAction } from "../app/actions";
 import { ActivityBuilderPage } from "../components/dashboard/activity-builder-page";
 import { useActivitiesStore } from "../lib/stores/activities-store";
 import { useActivityBuilderStore } from "../lib/stores/activity-builder-store";
@@ -19,6 +21,7 @@ import type { Activity, Member } from "../lib/types/domain";
 import { renderWithLocale } from "./test-utils";
 
 const refreshMock = vi.fn();
+const pushMock = vi.fn();
 const replaceMock = vi.fn();
 const dndCoreMocks = vi.hoisted(() => ({
   lastDndContextProps: null as Record<string, unknown> | null,
@@ -26,6 +29,7 @@ const dndCoreMocks = vi.hoisted(() => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
+    push: pushMock,
     refresh: refreshMock,
     replace: replaceMock,
   }),
@@ -80,6 +84,20 @@ const activity: Activity = {
   groupGeneratedAt: "2026-03-10T10:00:00.000Z",
   activityName: "2026-03-14 Gangnam",
   participationWeight: 1,
+};
+
+const groupedActivity: Activity = {
+  ...activity,
+  groups: [
+    {
+      groupNumber: 1,
+      memberIds: ["m1"],
+    },
+    {
+      groupNumber: 2,
+      memberIds: ["m2"],
+    },
+  ],
 };
 
 afterEach(() => {
@@ -216,5 +234,118 @@ describe("activity builder page", () => {
 
     expect(screen.getByDisplayValue("Flash")).toBeTruthy();
     expect(screen.queryByDisplayValue("2")).toBeNull();
+  });
+
+  it("shows regenerate copy and an unassigned tray after adding members to existing groups", async () => {
+    const user = userEvent.setup();
+    const expandedMembers: Member[] = [
+      ...members,
+      { id: "m3", name: "Coco", gender: "female", isManager: false, archivedAt: null },
+    ];
+
+    renderWithLocale(
+      <ActivityBuilderPage
+        editingActivity={groupedActivity}
+        initialMembers={expandedMembers}
+      />,
+      "en",
+    );
+
+    await waitFor(() => {
+      expect(useActivityBuilderStore.getState().editingActivityId).toBe("activity-1");
+    });
+
+    expect(
+      screen.getByRole("button", { name: "Regenerate groups" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Randomly reshuffle every selected member, including newly added ones.",
+      ),
+    ).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Select members" }));
+    const memberPicker = screen.getByRole("dialog");
+    await user.click(within(memberPicker).getByRole("button", { name: /Coco/ }));
+    await user.click(within(memberPicker).getByRole("button", { name: "Confirm members" }));
+
+    expect(screen.getByText("Unassigned members")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Newly added members stay here until you drag them into a group or regenerate all groups.",
+      ),
+    ).toBeTruthy();
+    expect(useActivityBuilderStore.getState().generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1"] },
+      { groupNumber: 2, memberIds: ["m2"] },
+    ]);
+  });
+
+  it("blocks saving while added members are still unassigned", async () => {
+    const user = userEvent.setup();
+    const expandedMembers: Member[] = [
+      ...members,
+      { id: "m3", name: "Coco", gender: "female", isManager: false, archivedAt: null },
+    ];
+
+    renderWithLocale(
+      <ActivityBuilderPage
+        editingActivity={groupedActivity}
+        initialMembers={expandedMembers}
+      />,
+      "en",
+    );
+
+    await waitFor(() => {
+      expect(useActivityBuilderStore.getState().editingActivityId).toBe("activity-1");
+    });
+
+    await user.click(screen.getByRole("button", { name: "Select members" }));
+    const memberPicker = screen.getByRole("dialog");
+    await user.click(within(memberPicker).getByRole("button", { name: /Coco/ }));
+    await user.click(within(memberPicker).getByRole("button", { name: "Confirm members" }));
+    await user.click(screen.getByRole("button", { name: "Update activity" }));
+
+    expect(vi.mocked(updateActivityAction)).not.toHaveBeenCalled();
+    expect(
+      screen.getByText("Saved groups must include every selected participant exactly once."),
+    ).toBeTruthy();
+  });
+
+  it("blocks saving while any preserved group is empty", async () => {
+    const user = userEvent.setup();
+    const expandedMembers: Member[] = [
+      ...members,
+      { id: "m3", name: "Coco", gender: "female", isManager: false, archivedAt: null },
+    ];
+    const activityWithThreeMembers: Activity = {
+      ...groupedActivity,
+      participantMemberIds: ["m1", "m2", "m3"],
+      groups: [
+        { groupNumber: 1, memberIds: ["m1", "m3"] },
+        { groupNumber: 2, memberIds: ["m2"] },
+      ],
+    };
+
+    renderWithLocale(
+      <ActivityBuilderPage
+        editingActivity={activityWithThreeMembers}
+        initialMembers={expandedMembers}
+      />,
+      "en",
+    );
+
+    await waitFor(() => {
+      expect(useActivityBuilderStore.getState().editingActivityId).toBe("activity-1");
+    });
+
+    await user.click(screen.getByRole("button", { name: "Select members" }));
+    const memberPicker = screen.getByRole("dialog");
+    await user.click(within(memberPicker).getByRole("button", { name: /Ben/ }));
+    await user.click(within(memberPicker).getByRole("button", { name: "Confirm members" }));
+    await user.click(screen.getByRole("button", { name: "Update activity" }));
+
+    expect(vi.mocked(updateActivityAction)).not.toHaveBeenCalled();
+    expect(screen.getByText("Each group must contain at least one member.")).toBeTruthy();
   });
 });

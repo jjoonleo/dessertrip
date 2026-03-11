@@ -55,6 +55,19 @@ describe("activity group dnd helpers", () => {
     });
   });
 
+  it("resolves an unassigned member hover onto an existing member", () => {
+    expect(
+      resolveGroupMoveTarget({
+        activeMemberId: "m5",
+        groups,
+        over: { id: getMemberItemId("m4") },
+      }),
+    ).toEqual({
+      targetGroupNumber: 2,
+      targetIndex: 1,
+    });
+  });
+
   it("builds preview groups by shifting the hovered group to make room", () => {
     const target = resolveGroupMoveTarget({
       activeMemberId: "m1",
@@ -74,6 +87,20 @@ describe("activity group dnd helpers", () => {
       { groupNumber: 3, memberIds: [] },
     ]);
     expect(activityGroupsEqual(previewGroups, groups)).toBe(false);
+  });
+
+  it("appends an unassigned member when dropped on a group column", () => {
+    expect(
+      moveMemberBetweenGroups(groups, {
+        activeMemberId: "m5",
+        targetGroupNumber: 3,
+        targetIndex: 0,
+      }),
+    ).toEqual([
+      { groupNumber: 1, memberIds: ["m1", "m2"] },
+      { groupNumber: 2, memberIds: ["m3", "m4"] },
+      { groupNumber: 3, memberIds: ["m5"] },
+    ]);
   });
 
   it("returns null for hovering the active member itself", () => {

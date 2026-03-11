@@ -208,6 +208,9 @@ export const enMessages = {
   "builder.selected.managerSuffix": "manager",
   "builder.grouping.field": "Number of groups",
   "builder.grouping.generate": "Generate groups",
+  "builder.grouping.regenerate": "Regenerate groups",
+  "builder.grouping.regenerateHint":
+    "Randomly reshuffle every selected member, including newly added ones.",
   "builder.flash.notice":
     "Flash meetings do not use groups. Saving will record only the selected participants.",
   "builder.validation.requiredFields":
@@ -228,6 +231,9 @@ export const enMessages = {
   "builder.adjust.mobileHint":
     "Long-press a member to drag on mobile, then move near the top or bottom edge to scroll.",
   "builder.adjust.empty": "Generate groups to start arranging members.",
+  "builder.unassigned.title": "Unassigned members",
+  "builder.unassigned.description":
+    "Newly added members stay here until you drag them into a group or regenerate all groups.",
   "builder.group.title": "Group {{number}}",
   "builder.group.membersCount": "{{count}} members",
   "builder.group.dropHere": "Drop a member here",
@@ -584,6 +590,9 @@ export const koMessages: MessageDictionary = {
   "builder.selected.managerSuffix": "매니저",
   "builder.grouping.field": "조 개수",
   "builder.grouping.generate": "조 생성",
+  "builder.grouping.regenerate": "조 다시 생성",
+  "builder.grouping.regenerateHint":
+    "새로 추가한 멤버를 포함해 선택한 모든 멤버를 무작위로 다시 섞습니다.",
   "builder.flash.notice":
     "번개모임은 조를 사용하지 않습니다. 저장하면 선택한 참여자만 기록됩니다.",
   "builder.validation.requiredFields": "활동 날짜와 장소 입력 필요",
@@ -602,6 +611,9 @@ export const koMessages: MessageDictionary = {
   "builder.adjust.mobileHint":
     "모바일에서는 멤버를 길게 눌러 드래그, 화면 위아래 가장자리에서 스크롤",
   "builder.adjust.empty": "멤버 배치 시작 전 조 생성 필요",
+  "builder.unassigned.title": "미배정 멤버",
+  "builder.unassigned.description":
+    "새로 추가한 멤버는 조에 드래그해서 넣거나 전체 조를 다시 생성할 때까지 여기 남아 있습니다.",
   "builder.group.title": "{{number}}조",
   "builder.group.membersCount": "멤버 {{count}}명",
   "builder.group.dropHere": "여기로 멤버를 놓으세요",

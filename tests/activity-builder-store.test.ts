@@ -26,6 +26,56 @@ describe("activity builder store", () => {
 
     expect(state.isMemberPickerOpen).toBe(false);
     expect(state.participantMemberIds).toEqual(["m1", "m2"]);
+    expect(state.generatedGroups).toEqual([]);
+    expect(state.lastGeneratedAt).toBeNull();
+  });
+
+  it("preserves generated groups and leaves newly added members unassigned", () => {
+    useActivityBuilderStore.setState({
+      participantMemberIds: ["m1", "m2"],
+      memberPickerDraftIds: ["m1", "m2", "m3"],
+      isMemberPickerOpen: true,
+      generatedGroups: [
+        { groupNumber: 1, memberIds: ["m1"] },
+        { groupNumber: 2, memberIds: ["m2"] },
+      ],
+      lastGeneratedAt: "2026-03-10T10:00:00.000Z",
+    });
+
+    useActivityBuilderStore.getState().confirmMemberPicker();
+
+    const state = useActivityBuilderStore.getState();
+
+    expect(state.participantMemberIds).toEqual(["m1", "m2", "m3"]);
+    expect(state.generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1"] },
+      { groupNumber: 2, memberIds: ["m2"] },
+    ]);
+    expect(state.lastGeneratedAt).toBe("2026-03-10T10:00:00.000Z");
+  });
+
+  it("preserves group columns and removes deselected members from existing groups", () => {
+    useActivityBuilderStore.setState({
+      participantMemberIds: ["m1", "m2"],
+      memberPickerDraftIds: ["m1"],
+      isMemberPickerOpen: true,
+      generatedGroups: [
+        { groupNumber: 1, memberIds: ["m1"] },
+        { groupNumber: 2, memberIds: ["m2"] },
+      ],
+      lastGeneratedAt: "2026-03-10T10:00:00.000Z",
+    });
+
+    useActivityBuilderStore.getState().confirmMemberPicker();
+
+    const state = useActivityBuilderStore.getState();
+
+    expect(state.participantMemberIds).toEqual(["m1"]);
+    expect(state.generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1"] },
+      { groupNumber: 2, memberIds: [] },
+    ]);
+    expect(state.lastGeneratedAt).toBe("2026-03-10T10:00:00.000Z");
   });
 
   it("tracks group count, warnings, and generated groups", () => {

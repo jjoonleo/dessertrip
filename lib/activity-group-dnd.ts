@@ -51,17 +51,20 @@ export function moveMemberBetweenGroups(
     (group) => group.groupNumber === input.targetGroupNumber,
   );
 
-  if (!sourceGroup || !targetGroup) {
+  if (!targetGroup) {
     return groups;
   }
 
-  const sourceIndex = sourceGroup.memberIds.indexOf(input.activeMemberId);
+  if (sourceGroup) {
+    const sourceIndex = sourceGroup.memberIds.indexOf(input.activeMemberId);
 
-  if (sourceIndex === -1) {
-    return groups;
+    if (sourceIndex === -1) {
+      return groups;
+    }
+
+    sourceGroup.memberIds.splice(sourceIndex, 1);
   }
 
-  sourceGroup.memberIds.splice(sourceIndex, 1);
   const boundedTargetIndex = Math.max(
     0,
     Math.min(input.targetIndex, targetGroup.memberIds.length),
@@ -83,11 +86,6 @@ export function resolveGroupMoveTarget(params: {
   }
 
   const sourceGroup = findGroupForMember(groups, activeMemberId);
-
-  if (!sourceGroup) {
-    return null;
-  }
-
   const overMemberId = parseMemberItemId(over.id);
 
   if (overMemberId && overMemberId === activeMemberId) {
@@ -101,10 +99,12 @@ export function resolveGroupMoveTarget(params: {
       return null;
     }
 
-    const sourceIndex = sourceGroup.memberIds.indexOf(activeMemberId);
+    const sourceIndex = sourceGroup?.memberIds.indexOf(activeMemberId) ?? -1;
     const overIndex = overGroup.memberIds.indexOf(overMemberId);
     const targetIndex =
-      sourceGroup.groupNumber === overGroup.groupNumber && sourceIndex < overIndex
+      sourceGroup &&
+      sourceGroup.groupNumber === overGroup.groupNumber &&
+      sourceIndex < overIndex
         ? overIndex - 1
         : overIndex;
 

@@ -11,6 +11,7 @@ import {
   closestCorners,
   pointerWithin,
   rectIntersection,
+  useDraggable,
   useDroppable,
   useSensor,
   useSensors,
@@ -204,6 +205,49 @@ function SortableGroupMember({
       style={{
         transform: isDragging ? undefined : CSS.Transform.toString(transform),
         transition: isDragging ? undefined : transition,
+        WebkitTouchCallout: "none",
+        WebkitUserSelect: "none",
+      }}
+      type="button"
+      {...attributes}
+      {...listeners}
+    >
+      <GroupMemberCard
+        archivedLabel={archivedLabel}
+        dragState={isDragging ? "placeholder" : "idle"}
+        femaleLabel={femaleLabel}
+        managerLabel={managerLabel}
+        maleLabel={maleLabel}
+        member={member}
+        unknownGenderLabel={unknownGenderLabel}
+        unknownMemberLabel={unknownMemberLabel}
+      />
+    </button>
+  );
+}
+
+function DraggableUnassignedMember({
+  archivedLabel,
+  femaleLabel,
+  managerLabel,
+  maleLabel,
+  member,
+  memberId,
+  unknownGenderLabel,
+  unknownMemberLabel,
+}: SortableGroupMemberProps) {
+  const { attributes, isDragging, listeners, setNodeRef, transform } = useDraggable({
+    id: getMemberItemId(memberId),
+  });
+
+  return (
+    <button
+      ref={setNodeRef}
+      className={`w-full rounded-box text-left touch-manipulation select-none ${
+        isDragging ? "pointer-events-none" : ""
+      }`}
+      style={{
+        transform: CSS.Transform.toString(transform),
         WebkitTouchCallout: "none",
         WebkitUserSelect: "none",
       }}
@@ -460,6 +504,18 @@ export function ActivityBuilderPage({
     activeDragMemberId ? membersById.get(activeDragMemberId) ?? null : null;
   const displayedGroups = previewGroups ?? generatedGroups;
   const isRegularMode = activityType === "regular";
+  const assignedMemberIds = new Set(
+    generatedGroups.flatMap((group) => group.memberIds),
+  );
+  const displayedAssignedMemberIds = new Set(
+    displayedGroups.flatMap((group) => group.memberIds),
+  );
+  const unassignedMemberIds = participantMemberIds.filter(
+    (memberId) => !displayedAssignedMemberIds.has(memberId),
+  );
+  const unassignedMembers = unassignedMemberIds
+    .map((memberId) => membersById.get(memberId))
+    .filter((member): member is Member => Boolean(member));
   const participationWeight = getActivityTypeConfig(activityType).participationWeight;
   const safeTargetGroupCount =
     Number.isInteger(targetGroupCount) && targetGroupCount >= 1
@@ -488,6 +544,19 @@ export function ActivityBuilderPage({
 
     if (isRegularMode && generatedGroups.length === 0) {
       setBuilderErrors(["builder.validation.generateBeforeSave"]);
+      return;
+    }
+
+    if (
+      isRegularMode &&
+      participantMemberIds.some((memberId) => !assignedMemberIds.has(memberId))
+    ) {
+      setBuilderErrors(["errors.validation.activity.groupsMustCoverParticipants"]);
+      return;
+    }
+
+    if (isRegularMode && generatedGroups.some((group) => group.memberIds.length === 0)) {
+      setBuilderErrors(["errors.validation.activity.groupMemberRequired"]);
       return;
     }
 
@@ -816,8 +885,15 @@ export function ActivityBuilderPage({
                         onClick={() => generateGroups(members)}
                         type="button"
                       >
-                        {t("builder.grouping.generate")}
+                        {generatedGroups.length > 0
+                          ? t("builder.grouping.regenerate")
+                          : t("builder.grouping.generate")}
                       </button>
+                      {generatedGroups.length > 0 ? (
+                        <p className="mt-2 text-sm text-base-content/60">
+                          {t("builder.grouping.regenerateHint")}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
 
@@ -885,28 +961,64 @@ export function ActivityBuilderPage({
                 onDragStart={handleDragStart}
                 sensors={sensors}
               >
-                <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                  {displayedGroups.map((group) => (
-                    <DroppableGroupColumn
-                      activeDragMemberId={activeDragMemberId}
-                      archivedLabel={t("common.status.archived")}
-                      dropHereLabel={t("builder.group.dropHere")}
-                      femaleLabel={t("common.gender.female")}
-                      key={group.groupNumber}
-                      group={group}
-                      groupMembersCountLabel={(count) =>
-                        t("builder.group.membersCount", { count })
-                      }
-                      groupTitleLabel={(groupNumber) =>
-                        t("builder.group.title", { number: groupNumber })
-                      }
-                      managerLabel={t("common.role.manager")}
-                      maleLabel={t("common.gender.male")}
-                      membersById={membersById}
-                      unknownGenderLabel={t("builder.member.unknownGender")}
-                      unknownMemberLabel={t("builder.member.unknown")}
-                    />
-                  ))}
+                <div className="space-y-4">
+                  {generatedGroups.length > 0 && unassignedMembers.length > 0 ? (
+                    <div className="rounded-box border border-dashed border-warning/50 bg-warning/10 p-4">
+                      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                        <div className="space-y-1">
+                          <h4 className="font-semibold">{t("builder.unassigned.title")}</h4>
+                          <p className="text-sm text-base-content/70">
+                            {t("builder.unassigned.description")}
+                          </p>
+                        </div>
+                        <span className="badge badge-warning badge-outline">
+                          {t("builder.group.membersCount", {
+                            count: unassignedMembers.length,
+                          })}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                        {unassignedMembers.map((member) => (
+                          <DraggableUnassignedMember
+                            archivedLabel={t("common.status.archived")}
+                            femaleLabel={t("common.gender.female")}
+                            key={member.id}
+                            managerLabel={t("common.role.manager")}
+                            maleLabel={t("common.gender.male")}
+                            member={member}
+                            memberId={member.id}
+                            unknownGenderLabel={t("builder.member.unknownGender")}
+                            unknownMemberLabel={t("builder.member.unknown")}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                    {displayedGroups.map((group) => (
+                      <DroppableGroupColumn
+                        activeDragMemberId={activeDragMemberId}
+                        archivedLabel={t("common.status.archived")}
+                        dropHereLabel={t("builder.group.dropHere")}
+                        femaleLabel={t("common.gender.female")}
+                        key={group.groupNumber}
+                        group={group}
+                        groupMembersCountLabel={(count) =>
+                          t("builder.group.membersCount", { count })
+                        }
+                        groupTitleLabel={(groupNumber) =>
+                          t("builder.group.title", { number: groupNumber })
+                        }
+                        managerLabel={t("common.role.manager")}
+                        maleLabel={t("common.gender.male")}
+                        membersById={membersById}
+                        unknownGenderLabel={t("builder.member.unknownGender")}
+                        unknownMemberLabel={t("builder.member.unknown")}
+                      />
+                    ))}
+                  </div>
                 </div>
                 <DragOverlay>
                   {activeDragMember ? (

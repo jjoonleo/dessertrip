@@ -45,6 +45,18 @@ function clearGeneratedGroupsState() {
   };
 }
 
+function pruneGroupsToParticipants(
+  groups: ActivityGroup[],
+  participantMemberIds: string[],
+) {
+  const participantIdSet = new Set(participantMemberIds);
+
+  return groups.map((group) => ({
+    ...group,
+    memberIds: group.memberIds.filter((memberId) => participantIdSet.has(memberId)),
+  }));
+}
+
 export type ActivityBuilderState = {
   editingActivityId: string | null;
   activityType: ActivityType;
@@ -172,12 +184,32 @@ export const useActivityBuilderStore = create<ActivityBuilderState>()(
             state.participantMemberIds,
           );
 
+          if (!selectionChanged) {
+            return {
+              isMemberPickerOpen: false,
+              memberSearch: "",
+            };
+          }
+
+          if (state.generatedGroups.length === 0) {
+            return {
+              participantMemberIds,
+              isMemberPickerOpen: false,
+              memberSearch: "",
+              dirty: true,
+              ...clearGeneratedGroupsState(),
+            };
+          }
+
           return {
             participantMemberIds,
             isMemberPickerOpen: false,
             memberSearch: "",
-            dirty: selectionChanged ? true : state.dirty,
-            ...(selectionChanged ? clearGeneratedGroupsState() : {}),
+            generatedGroups: pruneGroupsToParticipants(
+              state.generatedGroups,
+              participantMemberIds,
+            ),
+            dirty: true,
           };
         }),
       setMemberSearch: (memberSearch) => set({ memberSearch }),
@@ -303,12 +335,10 @@ export const useActivityBuilderStore = create<ActivityBuilderState>()(
         const memberPickerDraftIds = get().memberPickerDraftIds.filter((memberId) =>
           validMemberIds.has(memberId),
         );
-        const generatedGroups = get().generatedGroups
-          .map((group) => ({
-            ...group,
-            memberIds: group.memberIds.filter((memberId) => validMemberIds.has(memberId)),
-          }))
-          .filter((group) => group.memberIds.length > 0);
+        const generatedGroups = pruneGroupsToParticipants(
+          get().generatedGroups,
+          participantMemberIds,
+        );
 
         set({
           participantMemberIds,
