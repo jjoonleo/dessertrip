@@ -100,6 +100,66 @@ describe("activity builder store", () => {
     expect(state.lastGeneratedAt).not.toBeNull();
   });
 
+  it("adds an empty group and syncs the target group count", () => {
+    useActivityBuilderStore.setState({
+      participantMemberIds: ["m1", "m2"],
+      generatedGroups: [
+        { groupNumber: 1, memberIds: ["m1"] },
+        { groupNumber: 2, memberIds: ["m2"] },
+      ],
+      targetGroupCount: 2,
+    });
+
+    useActivityBuilderStore.getState().addEmptyGroup();
+
+    const state = useActivityBuilderStore.getState();
+
+    expect(state.generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1"] },
+      { groupNumber: 2, memberIds: ["m2"] },
+      { groupNumber: 3, memberIds: [] },
+    ]);
+    expect(state.targetGroupCount).toBe(3);
+  });
+
+  it("removes a group, renumbers the rest, and moves its members to unassigned order", () => {
+    useActivityBuilderStore.setState({
+      participantMemberIds: ["m1", "m2", "m3", "m4"],
+      generatedGroups: [
+        { groupNumber: 1, memberIds: ["m1"] },
+        { groupNumber: 2, memberIds: ["m3", "m2"] },
+        { groupNumber: 3, memberIds: ["m4"] },
+      ],
+      targetGroupCount: 3,
+    });
+
+    useActivityBuilderStore.getState().removeGroup(2);
+
+    const state = useActivityBuilderStore.getState();
+
+    expect(state.generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1"] },
+      { groupNumber: 2, memberIds: ["m4"] },
+    ]);
+    expect(state.participantMemberIds).toEqual(["m1", "m4", "m3", "m2"]);
+    expect(state.targetGroupCount).toBe(2);
+  });
+
+  it("does not remove the final remaining group", () => {
+    useActivityBuilderStore.setState({
+      participantMemberIds: ["m1"],
+      generatedGroups: [{ groupNumber: 1, memberIds: ["m1"] }],
+      targetGroupCount: 1,
+    });
+
+    useActivityBuilderStore.getState().removeGroup(1);
+
+    const state = useActivityBuilderStore.getState();
+
+    expect(state.generatedGroups).toEqual([{ groupNumber: 1, memberIds: ["m1"] }]);
+    expect(state.targetGroupCount).toBe(1);
+  });
+
   it("clears generated groups when switching to flash mode", () => {
     const store = useActivityBuilderStore.getState();
 
@@ -143,6 +203,7 @@ describe("activity builder store", () => {
 
     store.moveGroupMember({
       activeMemberId: "m1",
+      type: "existing-group",
       targetGroupNumber: targetGroup?.groupNumber ?? 1,
       targetIndex: targetGroup?.memberIds.length ?? 0,
     });

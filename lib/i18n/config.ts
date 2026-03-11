@@ -232,6 +232,10 @@ export const enMessages = {
   "builder.unassigned.title": "Unassigned members",
   "builder.unassigned.description":
     "Newly added members stay here until you drag them into a group or regenerate all groups.",
+  "builder.group.add": "Add group",
+  "builder.group.addDescription": "Create an empty group or drop a member here.",
+  "builder.group.removeAction": "Remove",
+  "builder.group.remove": "Remove group {{number}}",
   "builder.group.title": "Group {{number}}",
   "builder.group.membersCount": "{{count}} members",
   "builder.group.dropHere": "Drop a member here",
@@ -610,6 +614,10 @@ export const koMessages: MessageDictionary = {
   "builder.unassigned.title": "미배정 멤버",
   "builder.unassigned.description":
     "새로 추가한 멤버는 조에 드래그해서 넣거나 전체 조를 다시 생성할 때까지 여기 남아 있습니다.",
+  "builder.group.add": "조 추가",
+  "builder.group.addDescription": "빈 조를 만들거나 멤버를 여기로 놓으세요.",
+  "builder.group.removeAction": "삭제",
+  "builder.group.remove": "{{number}}조 삭제",
   "builder.group.title": "{{number}}조",
   "builder.group.membersCount": "멤버 {{count}}명",
   "builder.group.dropHere": "여기로 멤버를 놓으세요",

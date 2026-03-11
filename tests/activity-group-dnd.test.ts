@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   activityGroupsEqual,
+  getAddGroupDropId,
   getGroupDropId,
   getMemberItemId,
   moveMemberBetweenGroups,
@@ -24,6 +25,7 @@ describe("activity group dnd helpers", () => {
         over: { id: getMemberItemId("m3") },
       }),
     ).toEqual({
+      type: "existing-group",
       targetGroupNumber: 2,
       targetIndex: 0,
     });
@@ -37,6 +39,7 @@ describe("activity group dnd helpers", () => {
         over: { id: getMemberItemId("m3") },
       }),
     ).toEqual({
+      type: "existing-group",
       targetGroupNumber: 1,
       targetIndex: 1,
     });
@@ -50,6 +53,7 @@ describe("activity group dnd helpers", () => {
         over: { id: getGroupDropId(3) },
       }),
     ).toEqual({
+      type: "existing-group",
       targetGroupNumber: 3,
       targetIndex: 0,
     });
@@ -63,8 +67,22 @@ describe("activity group dnd helpers", () => {
         over: { id: getMemberItemId("m4") },
       }),
     ).toEqual({
+      type: "existing-group",
       targetGroupNumber: 2,
       targetIndex: 1,
+    });
+  });
+
+  it("resolves the add-group tile as a new trailing group target", () => {
+    expect(
+      resolveGroupMoveTarget({
+        activeMemberId: "m5",
+        groups,
+        over: { id: getAddGroupDropId() },
+      }),
+    ).toEqual({
+      type: "new-group",
+      targetIndex: 0,
     });
   });
 
@@ -77,7 +95,9 @@ describe("activity group dnd helpers", () => {
 
     const previewGroups = moveMemberBetweenGroups(groups, {
       activeMemberId: "m1",
-      targetGroupNumber: target?.targetGroupNumber ?? 2,
+      type: "existing-group",
+      targetGroupNumber:
+        target?.type === "existing-group" ? target.targetGroupNumber : 2,
       targetIndex: target?.targetIndex ?? 0,
     });
 
@@ -93,6 +113,7 @@ describe("activity group dnd helpers", () => {
     expect(
       moveMemberBetweenGroups(groups, {
         activeMemberId: "m5",
+        type: "existing-group",
         targetGroupNumber: 3,
         targetIndex: 0,
       }),
@@ -100,6 +121,36 @@ describe("activity group dnd helpers", () => {
       { groupNumber: 1, memberIds: ["m1", "m2"] },
       { groupNumber: 2, memberIds: ["m3", "m4"] },
       { groupNumber: 3, memberIds: ["m5"] },
+    ]);
+  });
+
+  it("creates a new trailing group for an unassigned member dropped on the add-group tile", () => {
+    expect(
+      moveMemberBetweenGroups(groups, {
+        activeMemberId: "m5",
+        type: "new-group",
+        targetIndex: 0,
+      }),
+    ).toEqual([
+      { groupNumber: 1, memberIds: ["m1", "m2"] },
+      { groupNumber: 2, memberIds: ["m3", "m4"] },
+      { groupNumber: 3, memberIds: [] },
+      { groupNumber: 4, memberIds: ["m5"] },
+    ]);
+  });
+
+  it("creates a new trailing group for a grouped member dropped on the add-group tile", () => {
+    expect(
+      moveMemberBetweenGroups(groups, {
+        activeMemberId: "m2",
+        type: "new-group",
+        targetIndex: 0,
+      }),
+    ).toEqual([
+      { groupNumber: 1, memberIds: ["m1"] },
+      { groupNumber: 2, memberIds: ["m3", "m4"] },
+      { groupNumber: 3, memberIds: [] },
+      { groupNumber: 4, memberIds: ["m2"] },
     ]);
   });
 
@@ -124,11 +175,13 @@ describe("activity group dnd helpers", () => {
         ],
         over: { id: getMemberItemId("m1") },
         previewMoveTarget: {
+          type: "existing-group",
           targetGroupNumber: 2,
           targetIndex: 1,
         },
       }),
     ).toEqual({
+      type: "existing-group",
       targetGroupNumber: 2,
       targetIndex: 1,
     });

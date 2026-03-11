@@ -2,7 +2,7 @@
 
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   AutoScrollActivator,
@@ -13,6 +13,10 @@ import {
 } from "@dnd-kit/core";
 import { updateActivityAction } from "../app/actions";
 import { ActivityBuilderPage } from "../components/dashboard/activity-builder-page";
+import {
+  getAddGroupDropId,
+  getMemberItemId,
+} from "../lib/activity-group-dnd";
 import { useActivitiesStore } from "../lib/stores/activities-store";
 import { useActivityBuilderStore } from "../lib/stores/activity-builder-store";
 import { useMembersStore } from "../lib/stores/members-store";
@@ -100,6 +104,33 @@ const groupedActivity: Activity = {
   ],
 };
 
+function getDndHandlers() {
+  return dndCoreMocks.lastDndContextProps as {
+    onDragCancel?: () => void;
+    onDragEnd?: (event: { active: { id: string }; over: { id: string } | null }) => void;
+    onDragOver?: (event: { active: { id: string }; over: { id: string } | null }) => void;
+    onDragStart?: (event: { active: { id: string } }) => void;
+  };
+}
+
+function setReducedMotionPreference(matches: boolean) {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches:
+        query === "(prefers-reduced-motion: reduce)" ? matches : false,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -108,6 +139,7 @@ afterEach(() => {
 describe("activity builder page", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
+    setReducedMotionPreference(false);
     vi.mocked(useSensor).mockClear();
     dndCoreMocks.lastDndContextProps = null;
     useMembersStore.setState({
@@ -274,6 +306,416 @@ describe("activity builder page", () => {
       { groupNumber: 1, memberIds: ["m1"] },
       { groupNumber: 2, memberIds: ["m2"] },
     ]);
+  });
+
+  it("adds an empty group from the add-group tile and disables removing the last remaining group", async () => {
+    const user = userEvent.setup();
+
+    renderWithLocale(
+      <ActivityBuilderPage editingActivity={groupedActivity} initialMembers={members} />,
+      "en",
+    );
+
+    await waitFor(() => {
+      expect(useActivityBuilderStore.getState().editingActivityId).toBe("activity-1");
+    });
+
+    await user.click(screen.getByRole("button", { name: "Add group" }));
+
+    expect(useActivityBuilderStore.getState().generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1"] },
+      { groupNumber: 2, memberIds: ["m2"] },
+      { groupNumber: 3, memberIds: [] },
+    ]);
+    expect(screen.getByText("Group 3")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Remove group 3" }));
+    await user.click(screen.getByRole("button", { name: "Remove group 2" }));
+
+    expect(useActivityBuilderStore.getState().generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1"] },
+    ]);
+    expect(
+      (screen.getByRole("button", { name: "Remove group 1" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+  });
+
+  it("creates a new group when dropping an unassigned member on the add-group tile", async () => {
+    const user = userEvent.setup();
+    const expandedMembers: Member[] = [
+      ...members,
+      { id: "m3", name: "Coco", gender: "female", isManager: false, archivedAt: null },
+    ];
+
+    const { container } = renderWithLocale(
+      <ActivityBuilderPage
+        editingActivity={groupedActivity}
+        initialMembers={expandedMembers}
+      />,
+      "en",
+    );
+
+    await waitFor(() => {
+      expect(useActivityBuilderStore.getState().editingActivityId).toBe("activity-1");
+    });
+
+    await user.click(screen.getByRole("button", { name: "Select members" }));
+    const memberPicker = screen.getByRole("dialog");
+    await user.click(within(memberPicker).getByRole("button", { name: /Coco/ }));
+    await user.click(within(memberPicker).getByRole("button", { name: "Confirm members" }));
+
+    const dndHandlers = getDndHandlers();
+
+    act(() => {
+      dndHandlers.onDragStart?.({
+        active: { id: getMemberItemId("m3") },
+      });
+      dndHandlers.onDragOver?.({
+        active: { id: getMemberItemId("m3") },
+        over: { id: getAddGroupDropId() },
+      });
+      dndHandlers.onDragEnd?.({
+        active: { id: getMemberItemId("m3") },
+        over: { id: getAddGroupDropId() },
+      });
+    });
+
+    expect(useActivityBuilderStore.getState().generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1"] },
+      { groupNumber: 2, memberIds: ["m2"] },
+      { groupNumber: 3, memberIds: ["m3"] },
+    ]);
+    expect(screen.getByText("Group 3")).toBeTruthy();
+
+    await waitFor(() => {
+      const ghost = screen.getByTestId("member-tile-settling-ghost");
+      expect(ghost.getAttribute("data-member-id")).toBe("m3");
+    });
+
+    expect(
+      container.querySelector(
+        '[data-member-tile-id="m3"][data-settling-hidden="true"]',
+      ),
+    ).not.toBeNull();
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("member-tile-settling-ghost")).toBeNull();
+    });
+
+    expect(screen.queryByText("Unassigned members")).toBeNull();
+  });
+
+  it("animates the settle ghost when dropping an unassigned member into an existing group", async () => {
+    const user = userEvent.setup();
+    const expandedMembers: Member[] = [
+      ...members,
+      { id: "m3", name: "Coco", gender: "female", isManager: false, archivedAt: null },
+    ];
+
+    const { container } = renderWithLocale(
+      <ActivityBuilderPage
+        editingActivity={groupedActivity}
+        initialMembers={expandedMembers}
+      />,
+      "en",
+    );
+
+    await waitFor(() => {
+      expect(useActivityBuilderStore.getState().editingActivityId).toBe("activity-1");
+    });
+
+    await user.click(screen.getByRole("button", { name: "Select members" }));
+    const memberPicker = screen.getByRole("dialog");
+    await user.click(within(memberPicker).getByRole("button", { name: /Coco/ }));
+    await user.click(within(memberPicker).getByRole("button", { name: "Confirm members" }));
+
+    const dndHandlers = getDndHandlers();
+
+    act(() => {
+      dndHandlers.onDragStart?.({
+        active: { id: getMemberItemId("m3") },
+      });
+      dndHandlers.onDragOver?.({
+        active: { id: getMemberItemId("m3") },
+        over: { id: "group:1" },
+      });
+      dndHandlers.onDragEnd?.({
+        active: { id: getMemberItemId("m3") },
+        over: { id: "group:1" },
+      });
+    });
+
+    expect(useActivityBuilderStore.getState().generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1", "m3"] },
+      { groupNumber: 2, memberIds: ["m2"] },
+    ]);
+
+    await waitFor(() => {
+      const ghost = screen.getByTestId("member-tile-settling-ghost");
+      expect(ghost.getAttribute("data-member-id")).toBe("m3");
+    });
+
+    expect(
+      container.querySelector(
+        '[data-member-tile-id="m3"][data-settling-hidden="true"]',
+      ),
+    ).not.toBeNull();
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("member-tile-settling-ghost")).toBeNull();
+    });
+
+    expect(
+      container.querySelector(
+        '[data-member-tile-id="m3"][data-settling-hidden="true"]',
+      ),
+    ).toBeNull();
+  });
+
+  it("commits the last valid preview target when release lands on the dragged member", async () => {
+    const user = userEvent.setup();
+    const expandedMembers: Member[] = [
+      ...members,
+      { id: "m3", name: "Coco", gender: "female", isManager: false, archivedAt: null },
+    ];
+
+    renderWithLocale(
+      <ActivityBuilderPage
+        editingActivity={groupedActivity}
+        initialMembers={expandedMembers}
+      />,
+      "en",
+    );
+
+    await waitFor(() => {
+      expect(useActivityBuilderStore.getState().editingActivityId).toBe("activity-1");
+    });
+
+    await user.click(screen.getByRole("button", { name: "Select members" }));
+    const memberPicker = screen.getByRole("dialog");
+    await user.click(within(memberPicker).getByRole("button", { name: /Coco/ }));
+    await user.click(within(memberPicker).getByRole("button", { name: "Confirm members" }));
+
+    const dndHandlers = getDndHandlers();
+
+    act(() => {
+      dndHandlers.onDragStart?.({
+        active: { id: getMemberItemId("m3") },
+      });
+      dndHandlers.onDragOver?.({
+        active: { id: getMemberItemId("m3") },
+        over: { id: "group:1" },
+      });
+      dndHandlers.onDragOver?.({
+        active: { id: getMemberItemId("m3") },
+        over: { id: getMemberItemId("m3") },
+      });
+      dndHandlers.onDragEnd?.({
+        active: { id: getMemberItemId("m3") },
+        over: { id: getMemberItemId("m3") },
+      });
+    });
+
+    expect(useActivityBuilderStore.getState().generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1", "m3"] },
+      { groupNumber: 2, memberIds: ["m2"] },
+    ]);
+    expect(screen.queryByText("Unassigned members")).toBeNull();
+  });
+
+  it("keeps the new-group drop when release lands on the preview group", async () => {
+    const user = userEvent.setup();
+    const expandedMembers: Member[] = [
+      ...members,
+      { id: "m3", name: "Coco", gender: "female", isManager: false, archivedAt: null },
+    ];
+
+    renderWithLocale(
+      <ActivityBuilderPage
+        editingActivity={groupedActivity}
+        initialMembers={expandedMembers}
+      />,
+      "en",
+    );
+
+    await waitFor(() => {
+      expect(useActivityBuilderStore.getState().editingActivityId).toBe("activity-1");
+    });
+
+    await user.click(screen.getByRole("button", { name: "Select members" }));
+    const memberPicker = screen.getByRole("dialog");
+    await user.click(within(memberPicker).getByRole("button", { name: /Coco/ }));
+    await user.click(within(memberPicker).getByRole("button", { name: "Confirm members" }));
+
+    const dndHandlers = getDndHandlers();
+
+    act(() => {
+      dndHandlers.onDragStart?.({
+        active: { id: getMemberItemId("m3") },
+      });
+      dndHandlers.onDragOver?.({
+        active: { id: getMemberItemId("m3") },
+        over: { id: getAddGroupDropId() },
+      });
+      dndHandlers.onDragEnd?.({
+        active: { id: getMemberItemId("m3") },
+        over: { id: "group:3" },
+      });
+    });
+
+    expect(useActivityBuilderStore.getState().generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1"] },
+      { groupNumber: 2, memberIds: ["m2"] },
+      { groupNumber: 3, memberIds: ["m3"] },
+    ]);
+  });
+
+  it("animates the settle ghost for grouped-to-grouped moves", async () => {
+    const { container } = renderWithLocale(
+      <ActivityBuilderPage editingActivity={groupedActivity} initialMembers={members} />,
+      "en",
+    );
+
+    await waitFor(() => {
+      expect(useActivityBuilderStore.getState().editingActivityId).toBe("activity-1");
+    });
+
+    const dndHandlers = getDndHandlers();
+
+    act(() => {
+      dndHandlers.onDragStart?.({
+        active: { id: getMemberItemId("m2") },
+      });
+      dndHandlers.onDragOver?.({
+        active: { id: getMemberItemId("m2") },
+        over: { id: "group:1" },
+      });
+      dndHandlers.onDragEnd?.({
+        active: { id: getMemberItemId("m2") },
+        over: { id: "group:1" },
+      });
+    });
+
+    expect(useActivityBuilderStore.getState().generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1", "m2"] },
+      { groupNumber: 2, memberIds: [] },
+    ]);
+
+    await waitFor(() => {
+      const ghost = screen.getByTestId("member-tile-settling-ghost");
+      expect(ghost.getAttribute("data-member-id")).toBe("m2");
+    });
+
+    expect(
+      container.querySelector(
+        '[data-member-tile-id="m2"][data-settling-hidden="true"]',
+      ),
+    ).not.toBeNull();
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("member-tile-settling-ghost")).toBeNull();
+    });
+  });
+
+  it("does not create a settle ghost when the drag is canceled", async () => {
+    renderWithLocale(
+      <ActivityBuilderPage editingActivity={groupedActivity} initialMembers={members} />,
+      "en",
+    );
+
+    await waitFor(() => {
+      expect(useActivityBuilderStore.getState().editingActivityId).toBe("activity-1");
+    });
+
+    const dndHandlers = getDndHandlers();
+
+    act(() => {
+      dndHandlers.onDragStart?.({
+        active: { id: getMemberItemId("m2") },
+      });
+      dndHandlers.onDragCancel?.();
+    });
+
+    expect(screen.queryByTestId("member-tile-settling-ghost")).toBeNull();
+    expect(useActivityBuilderStore.getState().generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1"] },
+      { groupNumber: 2, memberIds: ["m2"] },
+    ]);
+  });
+
+  it("skips the settle ghost when reduced motion is enabled", async () => {
+    setReducedMotionPreference(true);
+    const user = userEvent.setup();
+    const expandedMembers: Member[] = [
+      ...members,
+      { id: "m3", name: "Coco", gender: "female", isManager: false, archivedAt: null },
+    ];
+
+    const { container } = renderWithLocale(
+      <ActivityBuilderPage
+        editingActivity={groupedActivity}
+        initialMembers={expandedMembers}
+      />,
+      "en",
+    );
+
+    await waitFor(() => {
+      expect(useActivityBuilderStore.getState().editingActivityId).toBe("activity-1");
+    });
+
+    await user.click(screen.getByRole("button", { name: "Select members" }));
+    const memberPicker = screen.getByRole("dialog");
+    await user.click(within(memberPicker).getByRole("button", { name: /Coco/ }));
+    await user.click(within(memberPicker).getByRole("button", { name: "Confirm members" }));
+
+    const dndHandlers = getDndHandlers();
+
+    act(() => {
+      dndHandlers.onDragStart?.({
+        active: { id: getMemberItemId("m3") },
+      });
+      dndHandlers.onDragOver?.({
+        active: { id: getMemberItemId("m3") },
+        over: { id: "group:1" },
+      });
+      dndHandlers.onDragEnd?.({
+        active: { id: getMemberItemId("m3") },
+        over: { id: "group:1" },
+      });
+    });
+
+    expect(useActivityBuilderStore.getState().generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1", "m3"] },
+      { groupNumber: 2, memberIds: ["m2"] },
+    ]);
+    expect(screen.queryByTestId("member-tile-settling-ghost")).toBeNull();
+    expect(
+      container.querySelector(
+        '[data-member-tile-id="m3"][data-settling-hidden="true"]',
+      ),
+    ).toBeNull();
+  });
+
+  it("moves removed-group members into the unassigned tray", async () => {
+    const user = userEvent.setup();
+
+    renderWithLocale(
+      <ActivityBuilderPage editingActivity={groupedActivity} initialMembers={members} />,
+      "en",
+    );
+
+    await waitFor(() => {
+      expect(useActivityBuilderStore.getState().editingActivityId).toBe("activity-1");
+    });
+
+    await user.click(screen.getByRole("button", { name: "Remove group 2" }));
+
+    expect(useActivityBuilderStore.getState().generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1"] },
+    ]);
+    expect(screen.getByText("Unassigned members")).toBeTruthy();
+    expect(screen.getByText("Ben")).toBeTruthy();
   });
 
   it("blocks saving while added members are still unassigned", async () => {

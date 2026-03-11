@@ -57,6 +57,25 @@ function pruneGroupsToParticipants(
   }));
 }
 
+function renumberGroups(groups: ActivityGroup[]) {
+  return groups.map((group, index) => ({
+    ...group,
+    groupNumber: index + 1,
+  }));
+}
+
+function moveParticipantIdsToEnd(
+  participantMemberIds: string[],
+  trailingMemberIds: string[],
+) {
+  const trailingMemberIdSet = new Set(trailingMemberIds);
+
+  return [
+    ...participantMemberIds.filter((memberId) => !trailingMemberIdSet.has(memberId)),
+    ...trailingMemberIds.filter((memberId) => participantMemberIds.includes(memberId)),
+  ];
+}
+
 export type ActivityBuilderState = {
   editingActivityId: string | null;
   activityType: ActivityType;
@@ -85,6 +104,8 @@ export type ActivityBuilderState = {
   syncWarnings: (members: Member[]) => void;
   generateGroups: (members: Member[]) => void;
   moveGroupMember: (input: MoveGroupMemberInput) => void;
+  addEmptyGroup: () => void;
+  removeGroup: (groupNumber: number) => void;
   resetDraft: () => void;
   setErrors: (errors: TranslationKey[]) => void;
   clearErrors: () => void;
@@ -309,11 +330,70 @@ export const useActivityBuilderStore = create<ActivityBuilderState>()(
         }
       },
       moveGroupMember: (input) =>
-        set((state) => ({
-          generatedGroups: moveMemberBetweenGroups(state.generatedGroups, input),
-          dirty: true,
-          errors: [],
-        })),
+        set((state) => {
+          const generatedGroups = moveMemberBetweenGroups(state.generatedGroups, input);
+
+          return {
+            generatedGroups,
+            targetGroupCount: generatedGroups.length,
+            dirty: true,
+            errors: [],
+          };
+        }),
+      addEmptyGroup: () =>
+        set((state) => {
+          if (state.generatedGroups.length === 0) {
+            return {};
+          }
+
+          const generatedGroups = [
+            ...state.generatedGroups,
+            {
+              groupNumber: state.generatedGroups.length + 1,
+              memberIds: [],
+            },
+          ];
+
+          return {
+            generatedGroups,
+            targetGroupCount: generatedGroups.length,
+            dirty: true,
+            errors: [],
+          };
+        }),
+      removeGroup: (groupNumber) =>
+        set((state) => {
+          if (state.generatedGroups.length <= 1) {
+            return {};
+          }
+
+          const groupToRemove = state.generatedGroups.find(
+            (group) => group.groupNumber === groupNumber,
+          );
+
+          if (!groupToRemove) {
+            return {};
+          }
+
+          const generatedGroups = renumberGroups(
+            state.generatedGroups.filter((group) => group.groupNumber !== groupNumber),
+          );
+          const participantMemberIds = moveParticipantIdsToEnd(
+            state.participantMemberIds,
+            groupToRemove.memberIds,
+          );
+
+          return {
+            participantMemberIds,
+            memberPickerDraftIds: state.isMemberPickerOpen
+              ? participantMemberIds
+              : state.memberPickerDraftIds,
+            generatedGroups,
+            targetGroupCount: generatedGroups.length,
+            dirty: true,
+            errors: [],
+          };
+        }),
       resetDraft: () =>
         set({
           ...defaultActivityBuilderState,

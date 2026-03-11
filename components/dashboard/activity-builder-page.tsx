@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type HTMLAttributes,
+} from "react";
 import {
   AutoScrollActivator,
   DndContext,
@@ -37,8 +43,10 @@ import { formatParticipationScore } from "../../lib/participation";
 import { useI18n } from "../i18n/i18n-context";
 import {
   activityGroupsEqual,
+  getAddGroupDropId,
   getGroupDropId,
   getMemberItemId,
+  parseGroupDropId,
   moveMemberBetweenGroups,
   parseMemberItemId,
   resolveCommittedGroupMoveTarget,
@@ -58,10 +66,70 @@ type ActivityBuilderPageProps = {
   editingActivity: Activity | null;
 };
 
+type MemberTileRect = {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+};
+
+type SettlingDrag = {
+  memberId: string;
+  fromRect: MemberTileRect;
+  toRect: MemberTileRect;
+  phase: "preparing" | "settling";
+};
+
+type MemberTileButtonProps = GroupMemberCardProps & {
+  buttonClassName: string;
+  buttonStyle?: CSSProperties;
+  hiddenWhileSettling?: boolean;
+  interactionProps?: HTMLAttributes<HTMLButtonElement>;
+  memberId: string;
+  registerMemberTileNode: (
+    memberId: string,
+    node: HTMLButtonElement | null,
+  ) => void;
+  setButtonRef: (node: HTMLButtonElement | null) => void;
+};
+
 const mobileTouchActivationConstraint = {
   delay: 180,
   tolerance: 8,
 } as const;
+
+const settleAnimationDurationMs = 200;
+
+function getMemberTileRect(
+  value:
+    | {
+        top: number;
+        left: number;
+        width: number;
+        height: number;
+      }
+    | null
+    | undefined,
+): MemberTileRect | null {
+  if (!value) {
+    return null;
+  }
+
+  return {
+    top: value.top,
+    left: value.left,
+    width: value.width,
+    height: value.height,
+  };
+}
+
+function measureMemberTileRect(element: Element | null | undefined) {
+  if (!(element instanceof Element)) {
+    return null;
+  }
+
+  return getMemberTileRect(element.getBoundingClientRect());
+}
 
 function isPageScrollElement(element: Element) {
   if (typeof document === "undefined") {
@@ -107,10 +175,15 @@ const activityGroupCollisionDetection: CollisionDetection = (args) => {
 type SortableGroupMemberProps = {
   archivedLabel: string;
   femaleLabel: string;
+  hiddenWhileSettling?: boolean;
   managerLabel: string;
   maleLabel: string;
   member: Member | null;
   memberId: string;
+  registerMemberTileNode: (
+    memberId: string,
+    node: HTMLButtonElement | null,
+  ) => void;
   unknownGenderLabel: string;
   unknownMemberLabel: string;
 };
@@ -138,7 +211,7 @@ function GroupMemberCard({
 }: GroupMemberCardProps) {
   return (
     <div
-      className={`card min-h-[84px] border text-left transition ${
+      className={`card min-h-[84px] border text-left transition-[width,transform,opacity,box-shadow,background-color,border-color] duration-150 ease-out ${
         dragState === "overlay"
           ? "border-primary/50 bg-base-100 shadow-xl"
           : dragState === "placeholder"
@@ -175,13 +248,61 @@ function GroupMemberCard({
   );
 }
 
-function SortableGroupMember({
+function MemberTileButton({
   archivedLabel,
+  buttonClassName,
+  buttonStyle,
+  dragState = "idle",
   femaleLabel,
+  hiddenWhileSettling = false,
+  interactionProps,
   managerLabel,
   maleLabel,
   member,
   memberId,
+  registerMemberTileNode,
+  setButtonRef,
+  unknownGenderLabel,
+  unknownMemberLabel,
+}: MemberTileButtonProps) {
+  return (
+    <button
+      ref={(node) => {
+        setButtonRef(node);
+        registerMemberTileNode(memberId, node);
+      }}
+      className={`${buttonClassName} ${
+        hiddenWhileSettling ? "pointer-events-none opacity-0" : ""
+      }`}
+      data-member-tile-id={memberId}
+      data-settling-hidden={hiddenWhileSettling ? "true" : undefined}
+      style={buttonStyle}
+      type="button"
+      {...interactionProps}
+    >
+      <GroupMemberCard
+        archivedLabel={archivedLabel}
+        dragState={dragState}
+        femaleLabel={femaleLabel}
+        managerLabel={managerLabel}
+        maleLabel={maleLabel}
+        member={member}
+        unknownGenderLabel={unknownGenderLabel}
+        unknownMemberLabel={unknownMemberLabel}
+      />
+    </button>
+  );
+}
+
+function SortableGroupMember({
+  archivedLabel,
+  femaleLabel,
+  hiddenWhileSettling = false,
+  managerLabel,
+  maleLabel,
+  member,
+  memberId,
+  registerMemberTileNode,
   unknownGenderLabel,
   unknownMemberLabel,
 }: SortableGroupMemberProps) {
@@ -195,77 +316,90 @@ function SortableGroupMember({
   } = useSortable({
     id: getMemberItemId(memberId),
   });
+  const widthTransition = "width 150ms ease-out";
+  const interactionProps = {
+    ...attributes,
+    ...listeners,
+  } as HTMLAttributes<HTMLButtonElement>;
 
   return (
-    <button
-      ref={setNodeRef}
-      className={`w-full rounded-box text-left touch-manipulation select-none ${
+    <MemberTileButton
+      archivedLabel={archivedLabel}
+      buttonClassName={`w-full rounded-box text-left touch-manipulation select-none transition-[width,opacity] duration-150 ease-out ${
         isDragging ? "pointer-events-none" : ""
       }`}
-      style={{
+      buttonStyle={{
         transform: isDragging ? undefined : CSS.Transform.toString(transform),
-        transition: isDragging ? undefined : transition,
+        transition: isDragging
+          ? widthTransition
+          : transition
+            ? `${transition}, ${widthTransition}`
+            : widthTransition,
         WebkitTouchCallout: "none",
         WebkitUserSelect: "none",
       }}
-      type="button"
-      {...attributes}
-      {...listeners}
-    >
-      <GroupMemberCard
-        archivedLabel={archivedLabel}
-        dragState={isDragging ? "placeholder" : "idle"}
-        femaleLabel={femaleLabel}
-        managerLabel={managerLabel}
-        maleLabel={maleLabel}
-        member={member}
-        unknownGenderLabel={unknownGenderLabel}
-        unknownMemberLabel={unknownMemberLabel}
-      />
-    </button>
+      dragState={isDragging ? "placeholder" : "idle"}
+      femaleLabel={femaleLabel}
+      hiddenWhileSettling={hiddenWhileSettling}
+      interactionProps={interactionProps}
+      managerLabel={managerLabel}
+      maleLabel={maleLabel}
+      member={member}
+      memberId={memberId}
+      registerMemberTileNode={registerMemberTileNode}
+      setButtonRef={setNodeRef}
+      unknownGenderLabel={unknownGenderLabel}
+      unknownMemberLabel={unknownMemberLabel}
+    />
   );
 }
 
 function DraggableUnassignedMember({
   archivedLabel,
   femaleLabel,
+  hiddenWhileSettling = false,
   managerLabel,
   maleLabel,
   member,
   memberId,
+  registerMemberTileNode,
   unknownGenderLabel,
   unknownMemberLabel,
 }: SortableGroupMemberProps) {
   const { attributes, isDragging, listeners, setNodeRef, transform } = useDraggable({
     id: getMemberItemId(memberId),
   });
+  const dragTransition = "transform 150ms ease-out, width 150ms ease-out";
+  const interactionProps = {
+    ...attributes,
+    ...listeners,
+  } as HTMLAttributes<HTMLButtonElement>;
 
   return (
-    <button
-      ref={setNodeRef}
-      className={`w-full rounded-box text-left touch-manipulation select-none ${
+    <MemberTileButton
+      archivedLabel={archivedLabel}
+      buttonClassName={`w-full rounded-box text-left touch-manipulation select-none transition-[width,transform,opacity] duration-150 ease-out ${
         isDragging ? "pointer-events-none" : ""
       }`}
-      style={{
+      buttonStyle={{
         transform: CSS.Transform.toString(transform),
+        transition: dragTransition,
         WebkitTouchCallout: "none",
         WebkitUserSelect: "none",
       }}
-      type="button"
-      {...attributes}
-      {...listeners}
-    >
-      <GroupMemberCard
-        archivedLabel={archivedLabel}
-        dragState={isDragging ? "placeholder" : "idle"}
-        femaleLabel={femaleLabel}
-        managerLabel={managerLabel}
-        maleLabel={maleLabel}
-        member={member}
-        unknownGenderLabel={unknownGenderLabel}
-        unknownMemberLabel={unknownMemberLabel}
-      />
-    </button>
+      dragState={isDragging ? "placeholder" : "idle"}
+      femaleLabel={femaleLabel}
+      hiddenWhileSettling={hiddenWhileSettling}
+      interactionProps={interactionProps}
+      managerLabel={managerLabel}
+      maleLabel={maleLabel}
+      member={member}
+      memberId={memberId}
+      registerMemberTileNode={registerMemberTileNode}
+      setButtonRef={setNodeRef}
+      unknownGenderLabel={unknownGenderLabel}
+      unknownMemberLabel={unknownMemberLabel}
+    />
   );
 }
 
@@ -275,11 +409,20 @@ type DroppableGroupColumnProps = {
   dropHereLabel: string;
   femaleLabel: string;
   group: ActivityGroup;
+  groupCount: number;
   groupMembersCountLabel: (count: number) => string;
+  hiddenSettlingMemberId: string | null;
+  groupRemoveActionLabel: string;
+  groupRemoveLabel: (groupNumber: number) => string;
   groupTitleLabel: (groupNumber: number) => string;
   managerLabel: string;
   maleLabel: string;
   membersById: Map<string, Member>;
+  onRemoveGroup: (groupNumber: number) => void;
+  registerMemberTileNode: (
+    memberId: string,
+    node: HTMLButtonElement | null,
+  ) => void;
   unknownGenderLabel: string;
   unknownMemberLabel: string;
 };
@@ -290,11 +433,17 @@ function DroppableGroupColumn({
   dropHereLabel,
   femaleLabel,
   group,
+  groupCount,
   groupMembersCountLabel,
+  hiddenSettlingMemberId,
+  groupRemoveActionLabel,
+  groupRemoveLabel,
   groupTitleLabel,
   managerLabel,
   maleLabel,
   membersById,
+  onRemoveGroup,
+  registerMemberTileNode,
   unknownGenderLabel,
   unknownMemberLabel,
 }: DroppableGroupColumnProps) {
@@ -315,9 +464,20 @@ function DroppableGroupColumn({
     >
       <div className="card-body flex h-full gap-4 p-5">
         <div className="flex items-center justify-between">
-          <h2 className="card-title text-base">
-            {groupTitleLabel(group.groupNumber)}
-          </h2>
+          <div className="space-y-1">
+            <h2 className="card-title text-base">
+              {groupTitleLabel(group.groupNumber)}
+            </h2>
+            <button
+              aria-label={groupRemoveLabel(group.groupNumber)}
+              className="btn btn-ghost btn-xs px-0 text-error disabled:text-base-content/40"
+              disabled={groupCount <= 1}
+              onClick={() => onRemoveGroup(group.groupNumber)}
+              type="button"
+            >
+              {groupRemoveActionLabel}
+            </button>
+          </div>
           <span className="badge badge-primary badge-outline">
             {groupMembersCountLabel(group.memberIds.length)}
           </span>
@@ -337,11 +497,13 @@ function DroppableGroupColumn({
                 <SortableGroupMember
                   archivedLabel={archivedLabel}
                   femaleLabel={femaleLabel}
+                  hiddenWhileSettling={hiddenSettlingMemberId === memberId}
                   key={memberId}
                   managerLabel={managerLabel}
                   maleLabel={maleLabel}
                   member={membersById.get(memberId) ?? null}
                   memberId={memberId}
+                  registerMemberTileNode={registerMemberTileNode}
                   unknownGenderLabel={unknownGenderLabel}
                   unknownMemberLabel={unknownMemberLabel}
                 />
@@ -351,6 +513,44 @@ function DroppableGroupColumn({
         </SortableContext>
       </div>
     </div>
+  );
+}
+
+type AddGroupTileProps = {
+  activeDragMemberId: string | null;
+  addGroupDescription: string;
+  addGroupLabel: string;
+  onAddGroup: () => void;
+};
+
+function AddGroupTile({
+  activeDragMemberId,
+  addGroupDescription,
+  addGroupLabel,
+  onAddGroup,
+}: AddGroupTileProps) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: getAddGroupDropId(),
+  });
+
+  return (
+    <button
+      aria-label={addGroupLabel}
+      ref={setNodeRef}
+      className={`flex min-h-[20rem] w-full flex-col items-center justify-center gap-3 rounded-box border border-dashed bg-base-200 px-5 py-8 text-center transition ${
+        isOver
+          ? "border-primary bg-primary/5 ring-2 ring-primary/40 shadow-md"
+          : activeDragMemberId
+            ? "border-base-300 ring-1 ring-base-300/80"
+            : "border-base-300 hover:border-primary/40 hover:bg-base-300/40"
+      }`}
+      onClick={onAddGroup}
+      type="button"
+    >
+      <span className="text-3xl leading-none">+</span>
+      <span className="font-semibold">{addGroupLabel}</span>
+      <span className="text-sm text-base-content/60">{addGroupDescription}</span>
+    </button>
   );
 }
 
@@ -367,7 +567,14 @@ export function ActivityBuilderPage({
     }),
   );
   const [activeDragMemberId, setActiveDragMemberId] = useState<string | null>(null);
+  const [activeDragWidth, setActiveDragWidth] = useState<number | null>(null);
   const [previewGroups, setPreviewGroups] = useState<ActivityGroup[] | null>(null);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [settlingDrag, setSettlingDrag] = useState<SettlingDrag | null>(null);
+  const memberTileNodesRef = useRef(new Map<string, HTMLButtonElement>());
+  const activeDragRectRef = useRef<MemberTileRect | null>(null);
+  const settleMeasureFrameRef = useRef<number | null>(null);
+  const previewGroupsRef = useRef<ActivityGroup[] | null>(null);
   const previewMoveTargetRef = useRef<GroupMoveTarget | null>(null);
 
   const members = useMembersStore((state) => state.members);
@@ -423,6 +630,8 @@ export function ActivityBuilderPage({
   const syncWarnings = useActivityBuilderStore((state) => state.syncWarnings);
   const generateGroups = useActivityBuilderStore((state) => state.generateGroups);
   const moveGroupMember = useActivityBuilderStore((state) => state.moveGroupMember);
+  const addEmptyGroup = useActivityBuilderStore((state) => state.addEmptyGroup);
+  const removeGroup = useActivityBuilderStore((state) => state.removeGroup);
   const resetDraft = useActivityBuilderStore((state) => state.resetDraft);
   const setBuilderErrors = useActivityBuilderStore((state) => state.setErrors);
   const clearBuilderErrors = useActivityBuilderStore((state) => state.clearErrors);
@@ -458,6 +667,33 @@ export function ActivityBuilderPage({
   }, [activityType, members, participantMemberIds, syncWarnings, targetGroupCount]);
 
   useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updatePreference = () => {
+      setPrefersReducedMotion(mediaQuery.matches);
+    };
+
+    updatePreference();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", updatePreference);
+
+      return () => {
+        mediaQuery.removeEventListener("change", updatePreference);
+      };
+    }
+
+    mediaQuery.addListener(updatePreference);
+
+    return () => {
+      mediaQuery.removeListener(updatePreference);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!activeDragMemberId || typeof document === "undefined") {
       return;
     }
@@ -491,6 +727,44 @@ export function ActivityBuilderPage({
     };
   }, [activeDragMemberId]);
 
+  useEffect(() => {
+    if (!settlingDrag || settlingDrag.phase !== "preparing") {
+      return;
+    }
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      setSettlingDrag((current) =>
+        current ? { ...current, phase: "settling" } : current,
+      );
+    });
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+    };
+  }, [settlingDrag]);
+
+  useEffect(() => {
+    if (!settlingDrag || settlingDrag.phase !== "settling") {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setSettlingDrag(null);
+    }, settleAnimationDurationMs);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [settlingDrag]);
+
+  useEffect(() => {
+    return () => {
+      if (settleMeasureFrameRef.current !== null) {
+        window.cancelAnimationFrame(settleMeasureFrameRef.current);
+      }
+    };
+  }, []);
+
   const membersById = new Map(members.map((member) => [member.id, member] as const));
   const selectedMembers = participantMemberIds
     .map((memberId) => membersById.get(memberId))
@@ -502,6 +776,8 @@ export function ActivityBuilderPage({
   );
   const activeDragMember =
     activeDragMemberId ? membersById.get(activeDragMemberId) ?? null : null;
+  const settlingDragMember =
+    settlingDrag ? membersById.get(settlingDrag.memberId) ?? null : null;
   const displayedGroups = previewGroups ?? generatedGroups;
   const isRegularMode = activityType === "regular";
   const assignedMemberIds = new Set(
@@ -517,10 +793,63 @@ export function ActivityBuilderPage({
     .map((memberId) => membersById.get(memberId))
     .filter((member): member is Member => Boolean(member));
   const participationWeight = getActivityTypeConfig(activityType).participationWeight;
+  const hiddenSettlingMemberId = settlingDrag?.memberId ?? null;
   const safeTargetGroupCount =
     Number.isInteger(targetGroupCount) && targetGroupCount >= 1
       ? targetGroupCount
       : Math.max(1, generatedGroups.length);
+
+  function registerMemberTileNode(
+    memberId: string,
+    node: HTMLButtonElement | null,
+  ) {
+    if (node) {
+      memberTileNodesRef.current.set(memberId, node);
+      return;
+    }
+
+    memberTileNodesRef.current.delete(memberId);
+  }
+
+  function clearSettlingAnimation() {
+    if (settleMeasureFrameRef.current !== null) {
+      window.cancelAnimationFrame(settleMeasureFrameRef.current);
+      settleMeasureFrameRef.current = null;
+    }
+
+    setSettlingDrag(null);
+  }
+
+  function scheduleSettlingAnimation(
+    memberId: string,
+    fromRect: MemberTileRect,
+    attempt = 0,
+  ) {
+    if (settleMeasureFrameRef.current !== null) {
+      window.cancelAnimationFrame(settleMeasureFrameRef.current);
+    }
+
+    settleMeasureFrameRef.current = window.requestAnimationFrame(() => {
+      settleMeasureFrameRef.current = null;
+
+      const toRect = measureMemberTileRect(memberTileNodesRef.current.get(memberId));
+
+      if (!toRect) {
+        if (attempt < 2) {
+          scheduleSettlingAnimation(memberId, fromRect, attempt + 1);
+        }
+
+        return;
+      }
+
+      setSettlingDrag({
+        memberId,
+        fromRect,
+        toRect,
+        phase: "preparing",
+      });
+    });
+  }
 
   async function handleSaveActivity(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -619,13 +948,28 @@ export function ActivityBuilderPage({
   }
 
   function handleDragStart(event: DragStartEvent) {
-    setActiveDragMemberId(parseMemberItemId(event.active.id));
+    const activeMemberId = parseMemberItemId(event.active.id);
+    const initialRect =
+      getMemberTileRect(event.active.rect?.current?.initial) ??
+      (activeMemberId
+        ? measureMemberTileRect(memberTileNodesRef.current.get(activeMemberId))
+        : null);
+
+    clearSettlingAnimation();
+    activeDragRectRef.current = initialRect;
+    setActiveDragMemberId(activeMemberId);
+    setActiveDragWidth(initialRect?.width ?? null);
+    previewGroupsRef.current = null;
     setPreviewGroups(null);
     previewMoveTargetRef.current = null;
   }
 
   function handleDragCancel() {
+    clearSettlingAnimation();
+    activeDragRectRef.current = null;
     setActiveDragMemberId(null);
+    setActiveDragWidth(null);
+    previewGroupsRef.current = null;
     setPreviewGroups(null);
     previewMoveTargetRef.current = null;
   }
@@ -640,40 +984,38 @@ export function ActivityBuilderPage({
     }
 
     if (!event.over) {
-      setPreviewGroups(null);
-      previewMoveTargetRef.current = null;
       return;
     }
 
-    setPreviewGroups((currentPreviewGroups) => {
-      const groupsForPreview = currentPreviewGroups ?? generatedGroups;
-      const moveTarget = resolveGroupMoveTarget({
-        activeMemberId,
-        groups: groupsForPreview,
-        over: event.over,
-      });
-
-      if (!moveTarget) {
-        return currentPreviewGroups;
-      }
-
-      previewMoveTargetRef.current = moveTarget;
-
-      const nextPreviewGroups = moveMemberBetweenGroups(groupsForPreview, {
-        activeMemberId,
-        ...moveTarget,
-      });
-
-      if (activityGroupsEqual(nextPreviewGroups, generatedGroups)) {
-        return null;
-      }
-
-      if (activityGroupsEqual(nextPreviewGroups, currentPreviewGroups)) {
-        return currentPreviewGroups;
-      }
-
-      return nextPreviewGroups;
+    const currentPreviewGroups = previewGroupsRef.current;
+    const groupsForPreview =
+      currentPreviewGroups && currentPreviewGroups.length === generatedGroups.length
+        ? currentPreviewGroups
+        : generatedGroups;
+    const moveTarget = resolveGroupMoveTarget({
+      activeMemberId,
+      groups: groupsForPreview,
+      over: event.over,
     });
+
+    if (!moveTarget) {
+      return;
+    }
+
+    previewMoveTargetRef.current = moveTarget;
+
+    const nextPreviewGroups = moveMemberBetweenGroups(groupsForPreview, {
+      activeMemberId,
+      ...moveTarget,
+    });
+    const nextPreviewState = activityGroupsEqual(nextPreviewGroups, generatedGroups)
+      ? null
+      : activityGroupsEqual(nextPreviewGroups, currentPreviewGroups)
+        ? currentPreviewGroups
+        : nextPreviewGroups;
+
+    previewGroupsRef.current = nextPreviewState;
+    setPreviewGroups(nextPreviewState);
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -684,23 +1026,61 @@ export function ActivityBuilderPage({
         return;
       }
 
-      const moveTarget = resolveCommittedGroupMoveTarget({
+      const currentDisplayedGroups = previewGroupsRef.current ?? generatedGroups;
+      const groupsForCommit =
+        previewMoveTargetRef.current?.type === "new-group"
+          ? generatedGroups
+          : currentDisplayedGroups;
+
+      let moveTarget = resolveCommittedGroupMoveTarget({
         activeMemberId,
-        groups: displayedGroups,
+        groups: groupsForCommit,
         over: event.over,
         previewMoveTarget: previewMoveTargetRef.current,
       });
+
+      const previewOnlyGroupNumber = parseGroupDropId(event.over?.id ?? "");
+
+      if (
+        !moveTarget &&
+        previewOnlyGroupNumber === generatedGroups.length + 1
+      ) {
+        moveTarget = {
+          type: "new-group",
+          targetIndex: 0,
+        };
+      }
 
       if (!moveTarget) {
         return;
       }
 
+      const nextGeneratedGroups = moveMemberBetweenGroups(generatedGroups, {
+        activeMemberId,
+        ...moveTarget,
+      });
+
+      if (activityGroupsEqual(nextGeneratedGroups, generatedGroups)) {
+        return;
+      }
+
+      const fromRect =
+        getMemberTileRect(event.active.rect?.current?.translated) ??
+        activeDragRectRef.current;
+
       moveGroupMember({
         activeMemberId,
         ...moveTarget,
       });
+
+      if (!prefersReducedMotion && fromRect) {
+        scheduleSettlingAnimation(activeMemberId, fromRect);
+      }
     } finally {
+      activeDragRectRef.current = null;
       setActiveDragMemberId(null);
+      setActiveDragWidth(null);
+      previewGroupsRef.current = null;
       setPreviewGroups(null);
       previewMoveTargetRef.current = null;
     }
@@ -980,11 +1360,13 @@ export function ActivityBuilderPage({
                           <DraggableUnassignedMember
                             archivedLabel={t("common.status.archived")}
                             femaleLabel={t("common.gender.female")}
+                            hiddenWhileSettling={hiddenSettlingMemberId === member.id}
                             key={member.id}
                             managerLabel={t("common.role.manager")}
                             maleLabel={t("common.gender.male")}
                             member={member}
                             memberId={member.id}
+                            registerMemberTileNode={registerMemberTileNode}
                             unknownGenderLabel={t("builder.member.unknownGender")}
                             unknownMemberLabel={t("builder.member.unknown")}
                           />
@@ -1002,8 +1384,14 @@ export function ActivityBuilderPage({
                         femaleLabel={t("common.gender.female")}
                         key={group.groupNumber}
                         group={group}
+                        groupCount={displayedGroups.length}
                         groupMembersCountLabel={(count) =>
                           t("builder.group.membersCount", { count })
+                        }
+                        hiddenSettlingMemberId={hiddenSettlingMemberId}
+                        groupRemoveActionLabel={t("builder.group.removeAction")}
+                        groupRemoveLabel={(groupNumber) =>
+                          t("builder.group.remove", { number: groupNumber })
                         }
                         groupTitleLabel={(groupNumber) =>
                           t("builder.group.title", { number: groupNumber })
@@ -1011,15 +1399,28 @@ export function ActivityBuilderPage({
                         managerLabel={t("common.role.manager")}
                         maleLabel={t("common.gender.male")}
                         membersById={membersById}
+                        onRemoveGroup={removeGroup}
+                        registerMemberTileNode={registerMemberTileNode}
                         unknownGenderLabel={t("builder.member.unknownGender")}
                         unknownMemberLabel={t("builder.member.unknown")}
                       />
                     ))}
+                    <AddGroupTile
+                      activeDragMemberId={activeDragMemberId}
+                      addGroupDescription={t("builder.group.addDescription")}
+                      addGroupLabel={t("builder.group.add")}
+                      onAddGroup={addEmptyGroup}
+                    />
                   </div>
                 </div>
-                <DragOverlay>
+                <DragOverlay dropAnimation={null}>
                   {activeDragMember ? (
-                    <div className="w-[18rem] max-w-[80vw] rotate-1">
+                    <div
+                      className="max-w-[80vw] rotate-1 transition-[width,transform] duration-150 ease-out"
+                      style={{
+                        width: activeDragWidth ? `${activeDragWidth}px` : "18rem",
+                      }}
+                    >
                       <GroupMemberCard
                         archivedLabel={t("common.status.archived")}
                         dragState="overlay"
@@ -1033,6 +1434,44 @@ export function ActivityBuilderPage({
                     </div>
                   ) : null}
                 </DragOverlay>
+                {settlingDrag && settlingDragMember ? (
+                  <div
+                    className="pointer-events-none fixed z-[60]"
+                    data-member-id={settlingDrag.memberId}
+                    data-testid="member-tile-settling-ghost"
+                    style={{
+                      left:
+                        settlingDrag.phase === "settling"
+                          ? `${settlingDrag.toRect.left}px`
+                          : `${settlingDrag.fromRect.left}px`,
+                      top:
+                        settlingDrag.phase === "settling"
+                          ? `${settlingDrag.toRect.top}px`
+                          : `${settlingDrag.fromRect.top}px`,
+                      width:
+                        settlingDrag.phase === "settling"
+                          ? `${settlingDrag.toRect.width}px`
+                          : `${settlingDrag.fromRect.width}px`,
+                      height:
+                        settlingDrag.phase === "settling"
+                          ? `${settlingDrag.toRect.height}px`
+                          : `${settlingDrag.fromRect.height}px`,
+                      transition:
+                        "left 200ms ease-out, top 200ms ease-out, width 200ms ease-out, height 200ms ease-out",
+                    }}
+                  >
+                    <GroupMemberCard
+                      archivedLabel={t("common.status.archived")}
+                      dragState="overlay"
+                      femaleLabel={t("common.gender.female")}
+                      managerLabel={t("common.role.manager")}
+                      maleLabel={t("common.gender.male")}
+                      member={settlingDragMember}
+                      unknownGenderLabel={t("builder.member.unknownGender")}
+                      unknownMemberLabel={t("builder.member.unknown")}
+                    />
+                  </div>
+                ) : null}
               </DndContext>
             )}
           </div>
