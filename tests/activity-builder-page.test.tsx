@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   act,
   cleanup,
-  fireEvent,
   screen,
   waitFor,
   within,
@@ -328,9 +327,9 @@ describe("activity builder page", () => {
       expect(useActivityBuilderStore.getState().editingActivityId).toBe("activity-1");
     });
 
-    fireEvent.change(screen.getByRole("spinbutton"), {
-      target: { value: "1" },
-    });
+    await user.click(
+      screen.getByRole("button", { name: "Decrease group count" }),
+    );
 
     expect(useActivityBuilderStore.getState().targetGroupCount).toBe(1);
     expect(useActivityBuilderStore.getState().generatedGroups).toEqual([
@@ -357,6 +356,27 @@ describe("activity builder page", () => {
     ]);
     expect(useActivityBuilderStore.getState().generatedGroups[0]?.memberIds).toHaveLength(2);
     expect(screen.queryByText("Group 2")).toBeNull();
+  });
+
+  it("does not decrement the group count when clicking empty space in the grouping controls", async () => {
+    const user = userEvent.setup();
+
+    renderWithLocale(
+      <ActivityBuilderPage editingActivity={groupedActivity} initialMembers={members} />,
+      "en",
+    );
+
+    await waitFor(() => {
+      expect(useActivityBuilderStore.getState().editingActivityId).toBe("activity-1");
+    });
+
+    await user.click(screen.getByTestId("grouping-controls"));
+
+    expect(useActivityBuilderStore.getState().targetGroupCount).toBe(2);
+    expect(useActivityBuilderStore.getState().generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1"] },
+      { groupNumber: 2, memberIds: ["m2"] },
+    ]);
   });
 
   it("adds an empty group from the add-group tile and disables removing the last remaining group", async () => {
@@ -406,9 +426,9 @@ describe("activity builder page", () => {
       expect(useActivityBuilderStore.getState().editingActivityId).toBe("activity-1");
     });
 
-    fireEvent.change(screen.getByRole("spinbutton"), {
-      target: { value: "1" },
-    });
+    await user.click(
+      screen.getByRole("button", { name: "Decrease group count" }),
+    );
     await user.click(screen.getByRole("button", { name: "Update activity" }));
 
     expect(vi.mocked(updateActivityAction)).not.toHaveBeenCalled();

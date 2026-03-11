@@ -207,6 +207,8 @@ export const enMessages = {
   "builder.selected.empty": "No members selected yet.",
   "builder.selected.managerSuffix": "manager",
   "builder.grouping.field": "Number of groups",
+  "builder.grouping.decrease": "Decrease group count",
+  "builder.grouping.increase": "Increase group count",
   "builder.grouping.generate": "Generate groups",
   "builder.grouping.regenerate": "Regenerate groups",
   "builder.grouping.regenerateHint":
@@ -600,6 +602,8 @@ export const koMessages: MessageDictionary = {
   "builder.selected.empty": "아직 선택된 멤버가 없습니다.",
   "builder.selected.managerSuffix": "매니저",
   "builder.grouping.field": "조 개수",
+  "builder.grouping.decrease": "조 개수 줄이기",
+  "builder.grouping.increase": "조 개수 늘리기",
   "builder.grouping.generate": "조 생성",
   "builder.grouping.regenerate": "조 다시 생성",
   "builder.grouping.regenerateHint":

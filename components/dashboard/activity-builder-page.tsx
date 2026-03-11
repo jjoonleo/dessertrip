@@ -1412,31 +1412,49 @@ export function ActivityBuilderPage({
             {isRegularMode ? (
               <div className="card border border-base-300 bg-base-200 shadow-sm">
                 <div className="card-body gap-4 p-4">
-                  <div className="grid gap-4 md:grid-cols-[minmax(0,260px)_1fr]">
-                    <FormField label={t("builder.grouping.field")}>
-                      <input
-                        className="input input-bordered w-full"
-                        disabled={participantMemberIds.length === 0}
-                        min={1}
-                        onChange={(event) =>
-                          setTargetGroupCount(Math.max(1, Number(event.target.value) || 1))
-                        }
-                        type="number"
-                        value={safeTargetGroupCount}
-                      />
-                    </FormField>
-
-                    <div className="flex flex-col justify-end gap-2">
-                      <button
-                        className="btn btn-primary w-fit"
-                        disabled={participantMemberIds.length === 0}
-                        onClick={handleGenerateButtonClick}
-                        type="button"
-                      >
-                        {generatedGroups.length > 0
-                          ? t("builder.grouping.regenerate")
-                          : t("builder.grouping.generate")}
-                      </button>
+                  <div className="form-control w-full gap-3" data-testid="grouping-controls">
+                    <span className="mb-1 block font-semibold">
+                      {t("builder.grouping.field")}
+                    </span>
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-3">
+                          <button
+                            aria-label={t("builder.grouping.decrease")}
+                            className="btn btn-circle btn-outline btn-neutral h-11 w-11 text-xl font-bold"
+                            disabled={
+                              participantMemberIds.length === 0 ||
+                              safeTargetGroupCount <= 1
+                            }
+                            onClick={() => setTargetGroupCount(safeTargetGroupCount - 1)}
+                            type="button"
+                          >
+                            -
+                          </button>
+                          <div className="flex min-w-10 items-center justify-center px-1 text-base font-semibold tabular-nums text-base-content/80">
+                            {safeTargetGroupCount}
+                          </div>
+                          <button
+                            aria-label={t("builder.grouping.increase")}
+                            className="btn btn-circle btn-outline btn-neutral h-11 w-11 text-xl font-bold"
+                            disabled={participantMemberIds.length === 0}
+                            onClick={() => setTargetGroupCount(safeTargetGroupCount + 1)}
+                            type="button"
+                          >
+                            +
+                          </button>
+                        </div>
+                        <button
+                          className="btn btn-primary w-fit"
+                          disabled={participantMemberIds.length === 0}
+                          onClick={handleGenerateButtonClick}
+                          type="button"
+                        >
+                          {generatedGroups.length > 0
+                            ? t("builder.grouping.regenerate")
+                            : t("builder.grouping.generate")}
+                        </button>
+                      </div>
                       {generatedGroups.length > 0 ? (
                         <p className="text-sm text-base-content/60">
                           {t("builder.grouping.regenerateHint")}
