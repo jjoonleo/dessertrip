@@ -1421,7 +1421,7 @@ export function ActivityBuilderPage({
                         <div className="flex items-center gap-3">
                           <button
                             aria-label={t("builder.grouping.decrease")}
-                            className="btn btn-circle btn-outline btn-neutral h-11 w-11 text-xl font-bold"
+                            className="btn btn-circle btn-outline btn-neutral inline-flex h-11 w-11 items-center justify-center p-0"
                             disabled={
                               participantMemberIds.length === 0 ||
                               safeTargetGroupCount <= 1
@@ -1429,19 +1429,25 @@ export function ActivityBuilderPage({
                             onClick={() => setTargetGroupCount(safeTargetGroupCount - 1)}
                             type="button"
                           >
-                            -
+                            <span
+                              aria-hidden="true"
+                              className="block h-0.5 w-4 rounded-full bg-current"
+                            />
                           </button>
                           <div className="flex min-w-10 items-center justify-center px-1 text-base font-semibold tabular-nums text-base-content/80">
                             {safeTargetGroupCount}
                           </div>
                           <button
                             aria-label={t("builder.grouping.increase")}
-                            className="btn btn-circle btn-outline btn-neutral h-11 w-11 text-xl font-bold"
+                            className="btn btn-circle btn-outline btn-neutral inline-flex h-11 w-11 items-center justify-center p-0"
                             disabled={participantMemberIds.length === 0}
                             onClick={() => setTargetGroupCount(safeTargetGroupCount + 1)}
                             type="button"
                           >
-                            +
+                            <span aria-hidden="true" className="relative block h-4 w-4">
+                              <span className="absolute left-0 top-1/2 h-0.5 w-4 -translate-y-1/2 rounded-full bg-current" />
+                              <span className="absolute left-1/2 top-0 h-4 w-0.5 -translate-x-1/2 rounded-full bg-current" />
+                            </span>
                           </button>
                         </div>
                         <button
