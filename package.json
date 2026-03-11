@@ -12,6 +12,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "seed:admin": "tsx scripts/seed-admin.ts",
+    "seed:preview": "tsx scripts/seed-preview.ts",
     "verify:restored-backup": "tsx scripts/verify-restored-backup.ts"
   },
   "dependencies": {
