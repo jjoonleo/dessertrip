@@ -2,14 +2,34 @@ import type { ActivityGroup } from "./types/domain";
 
 export type MoveGroupMemberInput = {
   activeMemberId: string;
-  targetGroupNumber: number;
-  targetIndex: number;
-};
+} & (
+  | {
+      type: "existing-group";
+      targetGroupNumber: number;
+      targetIndex: number;
+    }
+  | {
+      type: "new-group";
+      targetIndex: 0;
+    }
+  | {
+      type: "unassigned";
+    }
+);
 
-export type GroupMoveTarget = {
-  targetGroupNumber: number;
-  targetIndex: number;
-};
+export type GroupMoveTarget =
+  | {
+      type: "existing-group";
+      targetGroupNumber: number;
+      targetIndex: number;
+    }
+  | {
+      type: "new-group";
+      targetIndex: 0;
+    }
+  | {
+      type: "unassigned";
+    };
 
 type DragOverTarget = {
   id: string | number;
@@ -23,12 +43,28 @@ export function getGroupDropId(groupNumber: number) {
   return `group:${groupNumber}`;
 }
 
+export function getAddGroupDropId() {
+  return "group:add";
+}
+
+export function getUnassignedDropId() {
+  return "group:unassigned";
+}
+
 export function parseMemberItemId(value: string | number) {
   return String(value).startsWith("member:") ? String(value).slice(7) : null;
 }
 
 export function parseGroupDropId(value: string | number) {
   return String(value).startsWith("group:") ? Number(String(value).slice(6)) : null;
+}
+
+export function isAddGroupDropId(value: string | number) {
+  return String(value) === getAddGroupDropId();
+}
+
+export function isUnassignedDropId(value: string | number) {
+  return String(value) === getUnassignedDropId();
 }
 
 export function findGroupForMember(groups: ActivityGroup[], memberId: string) {
@@ -47,21 +83,38 @@ export function moveMemberBetweenGroups(
   const sourceGroup = nextGroups.find((group) =>
     group.memberIds.includes(input.activeMemberId),
   );
+
+  if (sourceGroup) {
+    const sourceIndex = sourceGroup.memberIds.indexOf(input.activeMemberId);
+
+    if (sourceIndex === -1) {
+      return groups;
+    }
+
+    sourceGroup.memberIds.splice(sourceIndex, 1);
+  }
+
+  if (input.type === "new-group") {
+    nextGroups.push({
+      groupNumber: nextGroups.length + 1,
+      memberIds: [input.activeMemberId],
+    });
+
+    return nextGroups;
+  }
+
+  if (input.type === "unassigned") {
+    return nextGroups;
+  }
+
   const targetGroup = nextGroups.find(
     (group) => group.groupNumber === input.targetGroupNumber,
   );
 
-  if (!sourceGroup || !targetGroup) {
+  if (!targetGroup) {
     return groups;
   }
 
-  const sourceIndex = sourceGroup.memberIds.indexOf(input.activeMemberId);
-
-  if (sourceIndex === -1) {
-    return groups;
-  }
-
-  sourceGroup.memberIds.splice(sourceIndex, 1);
   const boundedTargetIndex = Math.max(
     0,
     Math.min(input.targetIndex, targetGroup.memberIds.length),
@@ -82,10 +135,21 @@ export function resolveGroupMoveTarget(params: {
     return null;
   }
 
+  if (isAddGroupDropId(over.id)) {
+    return {
+      type: "new-group",
+      targetIndex: 0,
+    };
+  }
+
   const sourceGroup = findGroupForMember(groups, activeMemberId);
 
-  if (!sourceGroup) {
-    return null;
+  if (isUnassignedDropId(over.id)) {
+    return sourceGroup
+      ? {
+          type: "unassigned",
+        }
+      : null;
   }
 
   const overMemberId = parseMemberItemId(over.id);
@@ -98,17 +162,24 @@ export function resolveGroupMoveTarget(params: {
     const overGroup = findGroupForMember(groups, overMemberId);
 
     if (!overGroup) {
-      return null;
+      return sourceGroup
+        ? {
+            type: "unassigned",
+          }
+        : null;
     }
 
-    const sourceIndex = sourceGroup.memberIds.indexOf(activeMemberId);
+    const sourceIndex = sourceGroup?.memberIds.indexOf(activeMemberId) ?? -1;
     const overIndex = overGroup.memberIds.indexOf(overMemberId);
     const targetIndex =
-      sourceGroup.groupNumber === overGroup.groupNumber && sourceIndex < overIndex
+      sourceGroup &&
+      sourceGroup.groupNumber === overGroup.groupNumber &&
+      sourceIndex < overIndex
         ? overIndex - 1
         : overIndex;
 
     return {
+      type: "existing-group",
       targetGroupNumber: overGroup.groupNumber,
       targetIndex,
     };
@@ -127,6 +198,7 @@ export function resolveGroupMoveTarget(params: {
   }
 
   return {
+    type: "existing-group",
     targetGroupNumber: overGroup.groupNumber,
     targetIndex: overGroup.memberIds.length,
   };

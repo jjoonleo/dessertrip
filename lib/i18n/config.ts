@@ -207,7 +207,16 @@ export const enMessages = {
   "builder.selected.empty": "No members selected yet.",
   "builder.selected.managerSuffix": "manager",
   "builder.grouping.field": "Number of groups",
+  "builder.grouping.decrease": "Decrease group count",
+  "builder.grouping.increase": "Increase group count",
   "builder.grouping.generate": "Generate groups",
+  "builder.grouping.regenerate": "Regenerate groups",
+  "builder.grouping.regenerateHint":
+    "Randomly reshuffle every selected member, including newly added ones.",
+  "builder.grouping.regenerateConfirmTitle": "Regenerate groups?",
+  "builder.grouping.regenerateConfirmDescription":
+    "This will delete the current groups and randomly create {{count}} new groups for the selected members.",
+  "builder.grouping.confirmRegenerateAction": "Delete and regenerate",
   "builder.flash.notice":
     "Flash meetings do not use groups. Saving will record only the selected participants.",
   "builder.validation.requiredFields":
@@ -225,9 +234,19 @@ export const enMessages = {
   "builder.adjust.title": "Adjust generated groups",
   "builder.adjust.description":
     "Drag members between groups or reorder inside the same group before saving.",
-  "builder.adjust.mobileHint":
-    "Long-press a member to drag on mobile, then move near the top or bottom edge to scroll.",
   "builder.adjust.empty": "Generate groups to start arranging members.",
+  "builder.unassigned.title": "Unassigned members",
+  "builder.unassigned.description":
+    "Newly added members stay here until you drag them into a group or regenerate all groups.",
+  "builder.unassigned.dropHere": "Drop a member here to remove them from a group.",
+  "builder.group.add": "Add group",
+  "builder.group.addDescription": "Create an empty group or drop a member here.",
+  "builder.group.removeAction": "Remove",
+  "builder.group.remove": "Remove group {{number}}",
+  "builder.group.removeConfirmTitle": "Remove this group?",
+  "builder.group.removeConfirmDescription":
+    "Group {{number}} has {{count}} members. Removing it will move them to the unassigned area.",
+  "builder.group.confirmRemoveAction": "Remove group",
   "builder.group.title": "Group {{number}}",
   "builder.group.membersCount": "{{count}} members",
   "builder.group.dropHere": "Drop a member here",
@@ -583,7 +602,16 @@ export const koMessages: MessageDictionary = {
   "builder.selected.empty": "아직 선택된 멤버가 없습니다.",
   "builder.selected.managerSuffix": "매니저",
   "builder.grouping.field": "조 개수",
+  "builder.grouping.decrease": "조 개수 줄이기",
+  "builder.grouping.increase": "조 개수 늘리기",
   "builder.grouping.generate": "조 생성",
+  "builder.grouping.regenerate": "조 다시 생성",
+  "builder.grouping.regenerateHint":
+    "새로 추가한 멤버까지 포함해 선택한 멤버 전체를 무작위로 다시 편성합니다.",
+  "builder.grouping.regenerateConfirmTitle": "조를 다시 생성할까요?",
+  "builder.grouping.regenerateConfirmDescription":
+    "현재 조 편성은 삭제되고, 선택한 멤버로 {{count}}개의 조를 무작위로 다시 만듭니다.",
+  "builder.grouping.confirmRegenerateAction": "삭제 후 다시 생성",
   "builder.flash.notice":
     "번개모임은 조를 사용하지 않습니다. 저장하면 선택한 참여자만 기록됩니다.",
   "builder.validation.requiredFields": "활동 날짜와 장소 입력 필요",
@@ -599,9 +627,19 @@ export const koMessages: MessageDictionary = {
   "builder.adjust.title": "생성된 조 조정",
   "builder.adjust.description":
     "저장 전 멤버 드래그 이동과 같은 조 안 순서 변경",
-  "builder.adjust.mobileHint":
-    "모바일에서는 멤버를 길게 눌러 드래그, 화면 위아래 가장자리에서 스크롤",
   "builder.adjust.empty": "멤버 배치 시작 전 조 생성 필요",
+  "builder.unassigned.title": "미배정 멤버",
+  "builder.unassigned.description":
+    "새로 추가한 멤버는 조에 드래그해서 넣거나 전체 조를 다시 생성할 때까지 여기 남아 있습니다.",
+  "builder.unassigned.dropHere": "멤버를 여기로 놓으면 조에서 제외됩니다.",
+  "builder.group.add": "조 추가",
+  "builder.group.addDescription": "빈 조를 만들거나 멤버를 여기로 놓으세요.",
+  "builder.group.removeAction": "삭제",
+  "builder.group.remove": "{{number}}조 삭제",
+  "builder.group.removeConfirmTitle": "이 조를 삭제할까요?",
+  "builder.group.removeConfirmDescription":
+    "{{number}}조에 멤버 {{count}}명이 있습니다. 삭제하면 이 멤버들은 미배정 영역으로 이동합니다.",
+  "builder.group.confirmRemoveAction": "조 삭제",
   "builder.group.title": "{{number}}조",
   "builder.group.membersCount": "멤버 {{count}}명",
   "builder.group.dropHere": "여기로 멤버를 놓으세요",

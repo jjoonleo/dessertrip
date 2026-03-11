@@ -45,6 +45,47 @@ function clearGeneratedGroupsState() {
   };
 }
 
+function pruneGroupsToParticipants(
+  groups: ActivityGroup[],
+  participantMemberIds: string[],
+) {
+  const participantIdSet = new Set(participantMemberIds);
+
+  return groups.map((group) => ({
+    ...group,
+    memberIds: group.memberIds.filter((memberId) => participantIdSet.has(memberId)),
+  }));
+}
+
+function renumberGroups(groups: ActivityGroup[]) {
+  return groups.map((group, index) => ({
+    ...group,
+    groupNumber: index + 1,
+  }));
+}
+
+function moveParticipantIdsToEnd(
+  participantMemberIds: string[],
+  trailingMemberIds: string[],
+) {
+  const trailingMemberIdSet = new Set(trailingMemberIds);
+
+  return [
+    ...participantMemberIds.filter((memberId) => !trailingMemberIdSet.has(memberId)),
+    ...trailingMemberIds.filter((memberId) => participantMemberIds.includes(memberId)),
+  ];
+}
+
+function moveParticipantIdToEnd(
+  participantMemberIds: string[],
+  memberId: string,
+) {
+  return [
+    ...participantMemberIds.filter((currentMemberId) => currentMemberId !== memberId),
+    ...participantMemberIds.filter((currentMemberId) => currentMemberId === memberId),
+  ];
+}
+
 export type ActivityBuilderState = {
   editingActivityId: string | null;
   activityType: ActivityType;
@@ -73,6 +114,8 @@ export type ActivityBuilderState = {
   syncWarnings: (members: Member[]) => void;
   generateGroups: (members: Member[]) => void;
   moveGroupMember: (input: MoveGroupMemberInput) => void;
+  addEmptyGroup: () => void;
+  removeGroup: (groupNumber: number) => void;
   resetDraft: () => void;
   setErrors: (errors: TranslationKey[]) => void;
   clearErrors: () => void;
@@ -172,12 +215,32 @@ export const useActivityBuilderStore = create<ActivityBuilderState>()(
             state.participantMemberIds,
           );
 
+          if (!selectionChanged) {
+            return {
+              isMemberPickerOpen: false,
+              memberSearch: "",
+            };
+          }
+
+          if (state.generatedGroups.length === 0) {
+            return {
+              participantMemberIds,
+              isMemberPickerOpen: false,
+              memberSearch: "",
+              dirty: true,
+              ...clearGeneratedGroupsState(),
+            };
+          }
+
           return {
             participantMemberIds,
             isMemberPickerOpen: false,
             memberSearch: "",
-            dirty: selectionChanged ? true : state.dirty,
-            ...(selectionChanged ? clearGeneratedGroupsState() : {}),
+            generatedGroups: pruneGroupsToParticipants(
+              state.generatedGroups,
+              participantMemberIds,
+            ),
+            dirty: true,
           };
         }),
       setMemberSearch: (memberSearch) => set({ memberSearch }),
@@ -189,7 +252,6 @@ export const useActivityBuilderStore = create<ActivityBuilderState>()(
           return {
             targetGroupCount: nextGroupCount,
             dirty: countChanged ? true : state.dirty,
-            ...(countChanged ? clearGeneratedGroupsState() : {}),
           };
         }),
       syncWarnings: (members) => {
@@ -277,11 +339,78 @@ export const useActivityBuilderStore = create<ActivityBuilderState>()(
         }
       },
       moveGroupMember: (input) =>
-        set((state) => ({
-          generatedGroups: moveMemberBetweenGroups(state.generatedGroups, input),
-          dirty: true,
-          errors: [],
-        })),
+        set((state) => {
+          const generatedGroups = moveMemberBetweenGroups(state.generatedGroups, input);
+          const participantMemberIds =
+            input.type === "unassigned"
+              ? moveParticipantIdToEnd(
+                  state.participantMemberIds,
+                  input.activeMemberId,
+                )
+              : state.participantMemberIds;
+
+          return {
+            participantMemberIds,
+            generatedGroups,
+            targetGroupCount: generatedGroups.length,
+            dirty: true,
+            errors: [],
+          };
+        }),
+      addEmptyGroup: () =>
+        set((state) => {
+          if (state.generatedGroups.length === 0) {
+            return {};
+          }
+
+          const generatedGroups = [
+            ...state.generatedGroups,
+            {
+              groupNumber: state.generatedGroups.length + 1,
+              memberIds: [],
+            },
+          ];
+
+          return {
+            generatedGroups,
+            targetGroupCount: generatedGroups.length,
+            dirty: true,
+            errors: [],
+          };
+        }),
+      removeGroup: (groupNumber) =>
+        set((state) => {
+          if (state.generatedGroups.length <= 1) {
+            return {};
+          }
+
+          const groupToRemove = state.generatedGroups.find(
+            (group) => group.groupNumber === groupNumber,
+          );
+
+          if (!groupToRemove) {
+            return {};
+          }
+
+          const generatedGroups = renumberGroups(
+            state.generatedGroups.filter((group) => group.groupNumber !== groupNumber),
+          );
+          const participantMemberIds = moveParticipantIdsToEnd(
+            state.participantMemberIds,
+            groupToRemove.memberIds,
+          );
+
+          return {
+            participantMemberIds,
+            memberPickerDraftIds: state.isMemberPickerOpen
+              ? participantMemberIds
+              : state.memberPickerDraftIds,
+            generatedGroups,
+            targetGroupCount: generatedGroups.length,
+            dirty: true,
+            errors: [],
+          };
+        }),
       resetDraft: () =>
         set({
           ...defaultActivityBuilderState,
@@ -303,12 +432,10 @@ export const useActivityBuilderStore = create<ActivityBuilderState>()(
         const memberPickerDraftIds = get().memberPickerDraftIds.filter((memberId) =>
           validMemberIds.has(memberId),
         );
-        const generatedGroups = get().generatedGroups
-          .map((group) => ({
-            ...group,
-            memberIds: group.memberIds.filter((memberId) => validMemberIds.has(memberId)),
-          }))
-          .filter((group) => group.memberIds.length > 0);
+        const generatedGroups = pruneGroupsToParticipants(
+          get().generatedGroups,
+          participantMemberIds,
+        );
 
         set({
           participantMemberIds,

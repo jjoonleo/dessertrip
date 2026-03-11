@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   activityGroupsEqual,
+  getAddGroupDropId,
   getGroupDropId,
   getMemberItemId,
+  getUnassignedDropId,
   moveMemberBetweenGroups,
   resolveCommittedGroupMoveTarget,
   resolveGroupMoveTarget,
@@ -24,6 +26,7 @@ describe("activity group dnd helpers", () => {
         over: { id: getMemberItemId("m3") },
       }),
     ).toEqual({
+      type: "existing-group",
       targetGroupNumber: 2,
       targetIndex: 0,
     });
@@ -37,6 +40,7 @@ describe("activity group dnd helpers", () => {
         over: { id: getMemberItemId("m3") },
       }),
     ).toEqual({
+      type: "existing-group",
       targetGroupNumber: 1,
       targetIndex: 1,
     });
@@ -50,9 +54,71 @@ describe("activity group dnd helpers", () => {
         over: { id: getGroupDropId(3) },
       }),
     ).toEqual({
+      type: "existing-group",
       targetGroupNumber: 3,
       targetIndex: 0,
     });
+  });
+
+  it("resolves an unassigned member hover onto an existing member", () => {
+    expect(
+      resolveGroupMoveTarget({
+        activeMemberId: "m5",
+        groups,
+        over: { id: getMemberItemId("m4") },
+      }),
+    ).toEqual({
+      type: "existing-group",
+      targetGroupNumber: 2,
+      targetIndex: 1,
+    });
+  });
+
+  it("resolves the add-group tile as a new trailing group target", () => {
+    expect(
+      resolveGroupMoveTarget({
+        activeMemberId: "m5",
+        groups,
+        over: { id: getAddGroupDropId() },
+      }),
+    ).toEqual({
+      type: "new-group",
+      targetIndex: 0,
+    });
+  });
+
+  it("resolves the unassigned tray as an unassigned target for grouped members", () => {
+    expect(
+      resolveGroupMoveTarget({
+        activeMemberId: "m2",
+        groups,
+        over: { id: getUnassignedDropId() },
+      }),
+    ).toEqual({
+      type: "unassigned",
+    });
+  });
+
+  it("resolves hovering a grouped member over an unassigned tile as an unassigned target", () => {
+    expect(
+      resolveGroupMoveTarget({
+        activeMemberId: "m2",
+        groups,
+        over: { id: getMemberItemId("m5") },
+      }),
+    ).toEqual({
+      type: "unassigned",
+    });
+  });
+
+  it("ignores unassigned-to-unassigned tray drags", () => {
+    expect(
+      resolveGroupMoveTarget({
+        activeMemberId: "m5",
+        groups,
+        over: { id: getUnassignedDropId() },
+      }),
+    ).toBeNull();
   });
 
   it("builds preview groups by shifting the hovered group to make room", () => {
@@ -64,8 +130,10 @@ describe("activity group dnd helpers", () => {
 
     const previewGroups = moveMemberBetweenGroups(groups, {
       activeMemberId: "m1",
-      targetGroupNumber: target?.targetGroupNumber ?? 2,
-      targetIndex: target?.targetIndex ?? 0,
+      type: "existing-group",
+      targetGroupNumber:
+        target?.type === "existing-group" ? target.targetGroupNumber : 2,
+      targetIndex: target?.type === "existing-group" ? target.targetIndex : 0,
     });
 
     expect(previewGroups).toEqual([
@@ -74,6 +142,64 @@ describe("activity group dnd helpers", () => {
       { groupNumber: 3, memberIds: [] },
     ]);
     expect(activityGroupsEqual(previewGroups, groups)).toBe(false);
+  });
+
+  it("appends an unassigned member when dropped on a group column", () => {
+    expect(
+      moveMemberBetweenGroups(groups, {
+        activeMemberId: "m5",
+        type: "existing-group",
+        targetGroupNumber: 3,
+        targetIndex: 0,
+      }),
+    ).toEqual([
+      { groupNumber: 1, memberIds: ["m1", "m2"] },
+      { groupNumber: 2, memberIds: ["m3", "m4"] },
+      { groupNumber: 3, memberIds: ["m5"] },
+    ]);
+  });
+
+  it("creates a new trailing group for an unassigned member dropped on the add-group tile", () => {
+    expect(
+      moveMemberBetweenGroups(groups, {
+        activeMemberId: "m5",
+        type: "new-group",
+        targetIndex: 0,
+      }),
+    ).toEqual([
+      { groupNumber: 1, memberIds: ["m1", "m2"] },
+      { groupNumber: 2, memberIds: ["m3", "m4"] },
+      { groupNumber: 3, memberIds: [] },
+      { groupNumber: 4, memberIds: ["m5"] },
+    ]);
+  });
+
+  it("creates a new trailing group for a grouped member dropped on the add-group tile", () => {
+    expect(
+      moveMemberBetweenGroups(groups, {
+        activeMemberId: "m2",
+        type: "new-group",
+        targetIndex: 0,
+      }),
+    ).toEqual([
+      { groupNumber: 1, memberIds: ["m1"] },
+      { groupNumber: 2, memberIds: ["m3", "m4"] },
+      { groupNumber: 3, memberIds: [] },
+      { groupNumber: 4, memberIds: ["m2"] },
+    ]);
+  });
+
+  it("removes a grouped member when dropped on the unassigned tray", () => {
+    expect(
+      moveMemberBetweenGroups(groups, {
+        activeMemberId: "m2",
+        type: "unassigned",
+      }),
+    ).toEqual([
+      { groupNumber: 1, memberIds: ["m1"] },
+      { groupNumber: 2, memberIds: ["m3", "m4"] },
+      { groupNumber: 3, memberIds: [] },
+    ]);
   });
 
   it("returns null for hovering the active member itself", () => {
@@ -97,11 +223,13 @@ describe("activity group dnd helpers", () => {
         ],
         over: { id: getMemberItemId("m1") },
         previewMoveTarget: {
+          type: "existing-group",
           targetGroupNumber: 2,
           targetIndex: 1,
         },
       }),
     ).toEqual({
+      type: "existing-group",
       targetGroupNumber: 2,
       targetIndex: 1,
     });
