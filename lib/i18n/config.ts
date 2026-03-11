@@ -228,8 +228,6 @@ export const enMessages = {
   "builder.adjust.title": "Adjust generated groups",
   "builder.adjust.description":
     "Drag members between groups or reorder inside the same group before saving.",
-  "builder.adjust.mobileHint":
-    "Long-press a member to drag on mobile, then move near the top or bottom edge to scroll.",
   "builder.adjust.empty": "Generate groups to start arranging members.",
   "builder.unassigned.title": "Unassigned members",
   "builder.unassigned.description":
@@ -592,7 +590,7 @@ export const koMessages: MessageDictionary = {
   "builder.grouping.generate": "조 생성",
   "builder.grouping.regenerate": "조 다시 생성",
   "builder.grouping.regenerateHint":
-    "새로 추가한 멤버를 포함해 선택한 모든 멤버를 무작위로 다시 섞습니다.",
+    "새로 추가한 멤버까지 포함해 선택한 멤버 전체를 무작위로 다시 편성합니다.",
   "builder.flash.notice":
     "번개모임은 조를 사용하지 않습니다. 저장하면 선택한 참여자만 기록됩니다.",
   "builder.validation.requiredFields": "활동 날짜와 장소 입력 필요",
@@ -608,8 +606,6 @@ export const koMessages: MessageDictionary = {
   "builder.adjust.title": "생성된 조 조정",
   "builder.adjust.description":
     "저장 전 멤버 드래그 이동과 같은 조 안 순서 변경",
-  "builder.adjust.mobileHint":
-    "모바일에서는 멤버를 길게 눌러 드래그, 화면 위아래 가장자리에서 스크롤",
   "builder.adjust.empty": "멤버 배치 시작 전 조 생성 필요",
   "builder.unassigned.title": "미배정 멤버",
   "builder.unassigned.description":

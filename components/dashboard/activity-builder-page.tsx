@@ -878,9 +878,9 @@ export function ActivityBuilderPage({
                       />
                     </FormField>
 
-                    <div className="flex items-end">
+                    <div className="flex flex-col justify-end gap-2">
                       <button
-                        className="btn btn-primary w-full md:w-auto"
+                        className="btn btn-primary w-fit"
                         disabled={participantMemberIds.length === 0}
                         onClick={() => generateGroups(members)}
                         type="button"
@@ -890,7 +890,7 @@ export function ActivityBuilderPage({
                           : t("builder.grouping.generate")}
                       </button>
                       {generatedGroups.length > 0 ? (
-                        <p className="mt-2 text-sm text-base-content/60">
+                        <p className="text-sm text-base-content/60">
                           {t("builder.grouping.regenerateHint")}
                         </p>
                       ) : null}
@@ -941,9 +941,6 @@ export function ActivityBuilderPage({
               <h3 className="text-lg font-semibold">{t("builder.adjust.title")}</h3>
               <p className="text-sm text-base-content/70">
                 {t("builder.adjust.description")}
-              </p>
-              <p className="text-sm text-base-content/60">
-                {t("builder.adjust.mobileHint")}
               </p>
             </div>
 

@@ -173,11 +173,6 @@ describe("activity builder page", () => {
       useMembersStore.getState().members.find((member) => member.id === "m2")
         ?.archivedAt,
     ).toBe("2026-03-09T00:00:00.000Z");
-    expect(
-      screen.getByText(
-        "Long-press a member to drag on mobile, then move near the top or bottom edge to scroll.",
-      ),
-    ).toBeTruthy();
     expect(vi.mocked(useSensor)).toHaveBeenCalledWith(MouseSensor);
     expect(vi.mocked(useSensor)).toHaveBeenCalledWith(TouchSensor, {
       activationConstraint: {
