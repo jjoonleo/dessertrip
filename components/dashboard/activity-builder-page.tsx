@@ -46,6 +46,7 @@ import {
   getAddGroupDropId,
   getGroupDropId,
   getMemberItemId,
+  getUnassignedDropId,
   parseGroupDropId,
   moveMemberBetweenGroups,
   parseMemberItemId,
@@ -523,6 +524,27 @@ type AddGroupTileProps = {
   onAddGroup: () => void;
 };
 
+type DroppableUnassignedTrayProps = {
+  activeDragMemberId: string | null;
+  archivedLabel: string;
+  dropHereLabel: string;
+  emptyDropLabel: string;
+  femaleLabel: string;
+  hiddenSettlingMemberId: string | null;
+  hiddenPreviewMemberId: string | null;
+  managerLabel: string;
+  maleLabel: string;
+  members: Member[];
+  registerMemberTileNode: (
+    memberId: string,
+    node: HTMLButtonElement | null,
+  ) => void;
+  title: string;
+  description: string;
+  unknownGenderLabel: string;
+  unknownMemberLabel: string;
+};
+
 function AddGroupTile({
   activeDragMemberId,
   addGroupDescription,
@@ -554,6 +576,78 @@ function AddGroupTile({
   );
 }
 
+function DroppableUnassignedTray({
+  activeDragMemberId,
+  archivedLabel,
+  description,
+  dropHereLabel,
+  emptyDropLabel,
+  femaleLabel,
+  hiddenSettlingMemberId,
+  hiddenPreviewMemberId,
+  managerLabel,
+  maleLabel,
+  members,
+  registerMemberTileNode,
+  title,
+  unknownGenderLabel,
+  unknownMemberLabel,
+}: DroppableUnassignedTrayProps) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: getUnassignedDropId(),
+  });
+
+  return (
+    <div
+      data-testid="unassigned-member-tray"
+      ref={setNodeRef}
+      className={`rounded-box border border-dashed p-4 transition ${
+        isOver
+          ? "border-primary bg-primary/5 ring-2 ring-primary/40 shadow-md"
+          : activeDragMemberId
+            ? "border-warning/60 bg-warning/10 ring-1 ring-warning/40"
+            : "border-warning/50 bg-warning/10"
+      }`}
+    >
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div className="space-y-1">
+          <h4 className="font-semibold">{title}</h4>
+          <p className="text-sm text-base-content/70">{description}</p>
+        </div>
+        <span className="badge badge-warning badge-outline">
+          {dropHereLabel}
+        </span>
+      </div>
+
+      {members.filter((member) => member.id !== hiddenPreviewMemberId).length > 0 ? (
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {members
+            .filter((member) => member.id !== hiddenPreviewMemberId)
+            .map((member) => (
+            <DraggableUnassignedMember
+              archivedLabel={archivedLabel}
+              femaleLabel={femaleLabel}
+              hiddenWhileSettling={hiddenSettlingMemberId === member.id}
+              key={member.id}
+              managerLabel={managerLabel}
+              maleLabel={maleLabel}
+              member={member}
+              memberId={member.id}
+              registerMemberTileNode={registerMemberTileNode}
+              unknownGenderLabel={unknownGenderLabel}
+              unknownMemberLabel={unknownMemberLabel}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="mt-4 rounded-box border border-dashed border-base-300 bg-base-100 px-4 py-8 text-center text-sm text-base-content/60">
+          {emptyDropLabel}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ActivityBuilderPage({
   initialMembers,
   editingActivity,
@@ -569,6 +663,11 @@ export function ActivityBuilderPage({
   const [activeDragMemberId, setActiveDragMemberId] = useState<string | null>(null);
   const [activeDragWidth, setActiveDragWidth] = useState<number | null>(null);
   const [previewGroups, setPreviewGroups] = useState<ActivityGroup[] | null>(null);
+  const [previewMoveTarget, setPreviewMoveTarget] = useState<GroupMoveTarget | null>(
+    null,
+  );
+  const [pendingRegenerateConfirmation, setPendingRegenerateConfirmation] =
+    useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [pendingRemoveGroup, setPendingRemoveGroup] = useState<ActivityGroup | null>(
     null,
@@ -779,6 +878,9 @@ export function ActivityBuilderPage({
   );
   const activeDragMember =
     activeDragMemberId ? membersById.get(activeDragMemberId) ?? null : null;
+  const activeDragMemberSourceGroup = activeDragMemberId
+    ? generatedGroups.find((group) => group.memberIds.includes(activeDragMemberId)) ?? null
+    : null;
   const settlingDragMember =
     settlingDrag ? membersById.get(settlingDrag.memberId) ?? null : null;
   const displayedGroups = previewGroups ?? generatedGroups;
@@ -797,6 +899,15 @@ export function ActivityBuilderPage({
     .filter((member): member is Member => Boolean(member));
   const participationWeight = getActivityTypeConfig(activityType).participationWeight;
   const hiddenSettlingMemberId = settlingDrag?.memberId ?? null;
+  const hiddenPreviewUnassignedMemberId =
+    activeDragMemberId &&
+    (!activeDragMemberSourceGroup || previewMoveTarget?.type === "unassigned")
+      ? activeDragMemberId
+      : null;
+  const hasPendingGroupRegeneration =
+    isRegularMode &&
+    generatedGroups.length > 0 &&
+    targetGroupCount !== generatedGroups.length;
   const safeTargetGroupCount =
     Number.isInteger(targetGroupCount) && targetGroupCount >= 1
       ? targetGroupCount
@@ -821,6 +932,24 @@ export function ActivityBuilderPage({
     }
 
     setSettlingDrag(null);
+  }
+
+  function handleGenerateButtonClick() {
+    if (generatedGroups.length === 0) {
+      generateGroups(members);
+      return;
+    }
+
+    setPendingRegenerateConfirmation(true);
+  }
+
+  function handleConfirmRegenerateGroups() {
+    setPendingRegenerateConfirmation(false);
+    generateGroups(members);
+  }
+
+  function handleCancelRegenerateGroups() {
+    setPendingRegenerateConfirmation(false);
   }
 
   function scheduleSettlingAnimation(
@@ -879,6 +1008,11 @@ export function ActivityBuilderPage({
       return;
     }
 
+    if (hasPendingGroupRegeneration) {
+      setBuilderErrors(["builder.validation.generateBeforeSave"]);
+      return;
+    }
+
     if (
       isRegularMode &&
       participantMemberIds.some((memberId) => !assignedMemberIds.has(memberId))
@@ -931,6 +1065,7 @@ export function ActivityBuilderPage({
     clearBuilderErrors();
     setActivityError(null);
     setPendingRemoveGroup(null);
+    setPendingRegenerateConfirmation(false);
     router.push("/dashboard/activities");
   }
 
@@ -938,6 +1073,7 @@ export function ActivityBuilderPage({
     clearBuilderErrors();
     setActivityError(null);
     setPendingRemoveGroup(null);
+    setPendingRegenerateConfirmation(false);
 
     if (editingActivity) {
       hydrateFromActivity(editingActivity);
@@ -989,6 +1125,7 @@ export function ActivityBuilderPage({
     previewGroupsRef.current = null;
     setPreviewGroups(null);
     previewMoveTargetRef.current = null;
+    setPreviewMoveTarget(null);
   }
 
   function handleDragCancel() {
@@ -999,6 +1136,7 @@ export function ActivityBuilderPage({
     previewGroupsRef.current = null;
     setPreviewGroups(null);
     previewMoveTargetRef.current = null;
+    setPreviewMoveTarget(null);
   }
 
   function handleDragOver(event: DragOverEvent) {
@@ -1007,6 +1145,7 @@ export function ActivityBuilderPage({
     if (!activeMemberId) {
       setPreviewGroups(null);
       previewMoveTargetRef.current = null;
+      setPreviewMoveTarget(null);
       return;
     }
 
@@ -1030,6 +1169,7 @@ export function ActivityBuilderPage({
     }
 
     previewMoveTargetRef.current = moveTarget;
+    setPreviewMoveTarget(moveTarget);
 
     const nextPreviewGroups = moveMemberBetweenGroups(groupsForPreview, {
       activeMemberId,
@@ -1110,6 +1250,7 @@ export function ActivityBuilderPage({
       previewGroupsRef.current = null;
       setPreviewGroups(null);
       previewMoveTargetRef.current = null;
+      setPreviewMoveTarget(null);
     }
   }
 
@@ -1289,7 +1430,7 @@ export function ActivityBuilderPage({
                       <button
                         className="btn btn-primary w-fit"
                         disabled={participantMemberIds.length === 0}
-                        onClick={() => generateGroups(members)}
+                        onClick={handleGenerateButtonClick}
                         type="button"
                       >
                         {generatedGroups.length > 0
@@ -1366,40 +1507,27 @@ export function ActivityBuilderPage({
                 sensors={sensors}
               >
                 <div className="space-y-4">
-                  {generatedGroups.length > 0 && unassignedMembers.length > 0 ? (
-                    <div className="rounded-box border border-dashed border-warning/50 bg-warning/10 p-4">
-                      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                        <div className="space-y-1">
-                          <h4 className="font-semibold">{t("builder.unassigned.title")}</h4>
-                          <p className="text-sm text-base-content/70">
-                            {t("builder.unassigned.description")}
-                          </p>
-                        </div>
-                        <span className="badge badge-warning badge-outline">
-                          {t("builder.group.membersCount", {
-                            count: unassignedMembers.length,
-                          })}
-                        </span>
-                      </div>
-
-                      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                        {unassignedMembers.map((member) => (
-                          <DraggableUnassignedMember
-                            archivedLabel={t("common.status.archived")}
-                            femaleLabel={t("common.gender.female")}
-                            hiddenWhileSettling={hiddenSettlingMemberId === member.id}
-                            key={member.id}
-                            managerLabel={t("common.role.manager")}
-                            maleLabel={t("common.gender.male")}
-                            member={member}
-                            memberId={member.id}
-                            registerMemberTileNode={registerMemberTileNode}
-                            unknownGenderLabel={t("builder.member.unknownGender")}
-                            unknownMemberLabel={t("builder.member.unknown")}
-                          />
-                        ))}
-                      </div>
-                    </div>
+                  {generatedGroups.length > 0 &&
+                  (unassignedMembers.length > 0 || activeDragMemberId) ? (
+                    <DroppableUnassignedTray
+                      activeDragMemberId={activeDragMemberId}
+                      archivedLabel={t("common.status.archived")}
+                      description={t("builder.unassigned.description")}
+                      dropHereLabel={t("builder.group.membersCount", {
+                        count: unassignedMembers.length,
+                      })}
+                      emptyDropLabel={t("builder.unassigned.dropHere")}
+                      femaleLabel={t("common.gender.female")}
+                      hiddenSettlingMemberId={hiddenSettlingMemberId}
+                      hiddenPreviewMemberId={hiddenPreviewUnassignedMemberId}
+                      managerLabel={t("common.role.manager")}
+                      maleLabel={t("common.gender.male")}
+                      members={unassignedMembers}
+                      registerMemberTileNode={registerMemberTileNode}
+                      title={t("builder.unassigned.title")}
+                      unknownGenderLabel={t("builder.member.unknownGender")}
+                      unknownMemberLabel={t("builder.member.unknown")}
+                    />
                   ) : null}
 
                   <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
@@ -1546,6 +1674,48 @@ export function ActivityBuilderPage({
           </div>
         </div>
       </section>
+
+      {pendingRegenerateConfirmation ? (
+        <div className="modal modal-open" role="dialog">
+          <div className="modal-box max-w-lg space-y-5">
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold">
+                {t("builder.grouping.regenerateConfirmTitle")}
+              </h2>
+              <p className="text-sm text-base-content/70">
+                {t("builder.grouping.regenerateConfirmDescription", {
+                  count: safeTargetGroupCount,
+                })}
+              </p>
+            </div>
+
+            <div className="modal-action">
+              <button
+                className="btn btn-ghost"
+                onClick={handleCancelRegenerateGroups}
+                type="button"
+              >
+                {t("activities.actions.cancel")}
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleConfirmRegenerateGroups}
+                type="button"
+              >
+                {t("builder.grouping.confirmRegenerateAction")}
+              </button>
+            </div>
+          </div>
+          <button
+            aria-label={t("activities.actions.cancel")}
+            className="modal-backdrop"
+            onClick={handleCancelRegenerateGroups}
+            type="button"
+          >
+            {t("activities.actions.cancel")}
+          </button>
+        </div>
+      ) : null}
 
       {pendingRemoveGroup ? (
         <div className="modal modal-open" role="dialog">

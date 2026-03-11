@@ -4,6 +4,7 @@ import {
   getAddGroupDropId,
   getGroupDropId,
   getMemberItemId,
+  getUnassignedDropId,
   moveMemberBetweenGroups,
   resolveCommittedGroupMoveTarget,
   resolveGroupMoveTarget,
@@ -86,6 +87,40 @@ describe("activity group dnd helpers", () => {
     });
   });
 
+  it("resolves the unassigned tray as an unassigned target for grouped members", () => {
+    expect(
+      resolveGroupMoveTarget({
+        activeMemberId: "m2",
+        groups,
+        over: { id: getUnassignedDropId() },
+      }),
+    ).toEqual({
+      type: "unassigned",
+    });
+  });
+
+  it("resolves hovering a grouped member over an unassigned tile as an unassigned target", () => {
+    expect(
+      resolveGroupMoveTarget({
+        activeMemberId: "m2",
+        groups,
+        over: { id: getMemberItemId("m5") },
+      }),
+    ).toEqual({
+      type: "unassigned",
+    });
+  });
+
+  it("ignores unassigned-to-unassigned tray drags", () => {
+    expect(
+      resolveGroupMoveTarget({
+        activeMemberId: "m5",
+        groups,
+        over: { id: getUnassignedDropId() },
+      }),
+    ).toBeNull();
+  });
+
   it("builds preview groups by shifting the hovered group to make room", () => {
     const target = resolveGroupMoveTarget({
       activeMemberId: "m1",
@@ -98,7 +133,7 @@ describe("activity group dnd helpers", () => {
       type: "existing-group",
       targetGroupNumber:
         target?.type === "existing-group" ? target.targetGroupNumber : 2,
-      targetIndex: target?.targetIndex ?? 0,
+      targetIndex: target?.type === "existing-group" ? target.targetIndex : 0,
     });
 
     expect(previewGroups).toEqual([
@@ -151,6 +186,19 @@ describe("activity group dnd helpers", () => {
       { groupNumber: 2, memberIds: ["m3", "m4"] },
       { groupNumber: 3, memberIds: [] },
       { groupNumber: 4, memberIds: ["m2"] },
+    ]);
+  });
+
+  it("removes a grouped member when dropped on the unassigned tray", () => {
+    expect(
+      moveMemberBetweenGroups(groups, {
+        activeMemberId: "m2",
+        type: "unassigned",
+      }),
+    ).toEqual([
+      { groupNumber: 1, memberIds: ["m1"] },
+      { groupNumber: 2, memberIds: ["m3", "m4"] },
+      { groupNumber: 3, memberIds: [] },
     ]);
   });
 

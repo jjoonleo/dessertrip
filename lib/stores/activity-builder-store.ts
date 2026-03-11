@@ -76,6 +76,16 @@ function moveParticipantIdsToEnd(
   ];
 }
 
+function moveParticipantIdToEnd(
+  participantMemberIds: string[],
+  memberId: string,
+) {
+  return [
+    ...participantMemberIds.filter((currentMemberId) => currentMemberId !== memberId),
+    ...participantMemberIds.filter((currentMemberId) => currentMemberId === memberId),
+  ];
+}
+
 export type ActivityBuilderState = {
   editingActivityId: string | null;
   activityType: ActivityType;
@@ -242,7 +252,6 @@ export const useActivityBuilderStore = create<ActivityBuilderState>()(
           return {
             targetGroupCount: nextGroupCount,
             dirty: countChanged ? true : state.dirty,
-            ...(countChanged ? clearGeneratedGroupsState() : {}),
           };
         }),
       syncWarnings: (members) => {
@@ -332,8 +341,16 @@ export const useActivityBuilderStore = create<ActivityBuilderState>()(
       moveGroupMember: (input) =>
         set((state) => {
           const generatedGroups = moveMemberBetweenGroups(state.generatedGroups, input);
+          const participantMemberIds =
+            input.type === "unassigned"
+              ? moveParticipantIdToEnd(
+                  state.participantMemberIds,
+                  input.activeMemberId,
+                )
+              : state.participantMemberIds;
 
           return {
+            participantMemberIds,
             generatedGroups,
             targetGroupCount: generatedGroups.length,
             dirty: true,

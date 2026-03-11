@@ -100,6 +100,29 @@ describe("activity builder store", () => {
     expect(state.lastGeneratedAt).not.toBeNull();
   });
 
+  it("keeps existing groups when the target group count changes until regeneration runs", () => {
+    useActivityBuilderStore.setState({
+      participantMemberIds: ["m1", "m2", "m3"],
+      generatedGroups: [
+        { groupNumber: 1, memberIds: ["m1", "m2"] },
+        { groupNumber: 2, memberIds: ["m3"] },
+      ],
+      targetGroupCount: 2,
+      lastGeneratedAt: "2026-03-10T10:00:00.000Z",
+    });
+
+    useActivityBuilderStore.getState().setTargetGroupCount(3);
+
+    const state = useActivityBuilderStore.getState();
+
+    expect(state.targetGroupCount).toBe(3);
+    expect(state.generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1", "m2"] },
+      { groupNumber: 2, memberIds: ["m3"] },
+    ]);
+    expect(state.lastGeneratedAt).toBe("2026-03-10T10:00:00.000Z");
+  });
+
   it("adds an empty group and syncs the target group count", () => {
     useActivityBuilderStore.setState({
       participantMemberIds: ["m1", "m2"],
@@ -212,5 +235,32 @@ describe("activity builder store", () => {
 
     expect(nextGroups.find((group) => group.groupNumber === sourceGroup?.groupNumber)?.memberIds).not.toContain("m1");
     expect(nextGroups.find((group) => group.groupNumber === targetGroup?.groupNumber)?.memberIds).toContain("m1");
+  });
+
+  it("moves a grouped member into the unassigned area and sends them to the end of participant order", () => {
+    useActivityBuilderStore.setState({
+      participantMemberIds: ["m1", "m2", "m3", "m4"],
+      generatedGroups: [
+        { groupNumber: 1, memberIds: ["m1"] },
+        { groupNumber: 2, memberIds: ["m2", "m3"] },
+        { groupNumber: 3, memberIds: ["m4"] },
+      ],
+      targetGroupCount: 3,
+    });
+
+    useActivityBuilderStore.getState().moveGroupMember({
+      activeMemberId: "m2",
+      type: "unassigned",
+    });
+
+    const state = useActivityBuilderStore.getState();
+
+    expect(state.generatedGroups).toEqual([
+      { groupNumber: 1, memberIds: ["m1"] },
+      { groupNumber: 2, memberIds: ["m3"] },
+      { groupNumber: 3, memberIds: ["m4"] },
+    ]);
+    expect(state.participantMemberIds).toEqual(["m1", "m3", "m4", "m2"]);
+    expect(state.targetGroupCount).toBe(3);
   });
 });

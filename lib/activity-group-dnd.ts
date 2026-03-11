@@ -12,6 +12,9 @@ export type MoveGroupMemberInput = {
       type: "new-group";
       targetIndex: 0;
     }
+  | {
+      type: "unassigned";
+    }
 );
 
 export type GroupMoveTarget =
@@ -23,6 +26,9 @@ export type GroupMoveTarget =
   | {
       type: "new-group";
       targetIndex: 0;
+    }
+  | {
+      type: "unassigned";
     };
 
 type DragOverTarget = {
@@ -41,6 +47,10 @@ export function getAddGroupDropId() {
   return "group:add";
 }
 
+export function getUnassignedDropId() {
+  return "group:unassigned";
+}
+
 export function parseMemberItemId(value: string | number) {
   return String(value).startsWith("member:") ? String(value).slice(7) : null;
 }
@@ -51,6 +61,10 @@ export function parseGroupDropId(value: string | number) {
 
 export function isAddGroupDropId(value: string | number) {
   return String(value) === getAddGroupDropId();
+}
+
+export function isUnassignedDropId(value: string | number) {
+  return String(value) === getUnassignedDropId();
 }
 
 export function findGroupForMember(groups: ActivityGroup[], memberId: string) {
@@ -86,6 +100,10 @@ export function moveMemberBetweenGroups(
       memberIds: [input.activeMemberId],
     });
 
+    return nextGroups;
+  }
+
+  if (input.type === "unassigned") {
     return nextGroups;
   }
 
@@ -125,6 +143,15 @@ export function resolveGroupMoveTarget(params: {
   }
 
   const sourceGroup = findGroupForMember(groups, activeMemberId);
+
+  if (isUnassignedDropId(over.id)) {
+    return sourceGroup
+      ? {
+          type: "unassigned",
+        }
+      : null;
+  }
+
   const overMemberId = parseMemberItemId(over.id);
 
   if (overMemberId && overMemberId === activeMemberId) {
@@ -135,7 +162,11 @@ export function resolveGroupMoveTarget(params: {
     const overGroup = findGroupForMember(groups, overMemberId);
 
     if (!overGroup) {
-      return null;
+      return sourceGroup
+        ? {
+            type: "unassigned",
+          }
+        : null;
     }
 
     const sourceIndex = sourceGroup?.memberIds.indexOf(activeMemberId) ?? -1;

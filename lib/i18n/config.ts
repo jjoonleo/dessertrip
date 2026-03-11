@@ -211,6 +211,10 @@ export const enMessages = {
   "builder.grouping.regenerate": "Regenerate groups",
   "builder.grouping.regenerateHint":
     "Randomly reshuffle every selected member, including newly added ones.",
+  "builder.grouping.regenerateConfirmTitle": "Regenerate groups?",
+  "builder.grouping.regenerateConfirmDescription":
+    "This will delete the current groups and randomly create {{count}} new groups for the selected members.",
+  "builder.grouping.confirmRegenerateAction": "Delete and regenerate",
   "builder.flash.notice":
     "Flash meetings do not use groups. Saving will record only the selected participants.",
   "builder.validation.requiredFields":
@@ -232,6 +236,7 @@ export const enMessages = {
   "builder.unassigned.title": "Unassigned members",
   "builder.unassigned.description":
     "Newly added members stay here until you drag them into a group or regenerate all groups.",
+  "builder.unassigned.dropHere": "Drop a member here to remove them from a group.",
   "builder.group.add": "Add group",
   "builder.group.addDescription": "Create an empty group or drop a member here.",
   "builder.group.removeAction": "Remove",
@@ -599,6 +604,10 @@ export const koMessages: MessageDictionary = {
   "builder.grouping.regenerate": "조 다시 생성",
   "builder.grouping.regenerateHint":
     "새로 추가한 멤버까지 포함해 선택한 멤버 전체를 무작위로 다시 편성합니다.",
+  "builder.grouping.regenerateConfirmTitle": "조를 다시 생성할까요?",
+  "builder.grouping.regenerateConfirmDescription":
+    "현재 조 편성은 삭제되고, 선택한 멤버로 {{count}}개의 조를 무작위로 다시 만듭니다.",
+  "builder.grouping.confirmRegenerateAction": "삭제 후 다시 생성",
   "builder.flash.notice":
     "번개모임은 조를 사용하지 않습니다. 저장하면 선택한 참여자만 기록됩니다.",
   "builder.validation.requiredFields": "활동 날짜와 장소 입력 필요",
@@ -618,6 +627,7 @@ export const koMessages: MessageDictionary = {
   "builder.unassigned.title": "미배정 멤버",
   "builder.unassigned.description":
     "새로 추가한 멤버는 조에 드래그해서 넣거나 전체 조를 다시 생성할 때까지 여기 남아 있습니다.",
+  "builder.unassigned.dropHere": "멤버를 여기로 놓으면 조에서 제외됩니다.",
   "builder.group.add": "조 추가",
   "builder.group.addDescription": "빈 조를 만들거나 멤버를 여기로 놓으세요.",
   "builder.group.removeAction": "삭제",
